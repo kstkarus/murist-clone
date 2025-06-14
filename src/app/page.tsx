@@ -160,32 +160,75 @@ export default function Home() {
     <div className="min-h-screen bg-gray-50 flex flex-col items-center font-sans text-gray-900 overflow-x-hidden">
       {/* Баннер */}
       <motion.section
-        initial={{ opacity: 0, y: -40 }}
-        animate={{ opacity: 1, y: 0 }}
+        initial={{ opacity: 0 }}
+        whileInView={{ opacity: 1 }}
+        viewport={{ once: true, amount: 0.3 }}
         transition={{ duration: 0.7 }}
-        className="w-full bg-white shadow-md py-8 sm:py-10 px-2 sm:px-4 flex flex-col items-center text-center text-gray-900"
+        className="w-full max-w-5xl py-8 sm:py-10 px-4 mx-auto text-center"
       >
-        <h1 className="text-2xl sm:text-5xl font-bold mb-3 sm:mb-4">{settings?.siteName || 'Юридические услуги'}</h1>
-        <p className="text-base sm:text-2xl mb-4 sm:mb-6">{settings?.description}</p>
-        <button
-          className="bg-blue-600 text-white px-6 sm:px-8 py-3 rounded-full font-semibold hover:bg-blue-700 transition transform hover:scale-105 active:scale-95 duration-200 text-base sm:text-lg min-w-[180px]"
-          style={{ touchAction: 'manipulation' }}
-          onClick={() => {
-            formRef.current?.scrollIntoView({ behavior: 'smooth' });
-          }}
+        <motion.h1
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.5 }}
+          className="text-3xl sm:text-4xl lg:text-5xl font-bold text-gray-900 mb-4 sm:mb-6"
         >
-          Заказать звонок
-        </button>
-        <p className="mt-3 sm:mt-4 text-xs sm:text-sm text-gray-600">{settings?.guaranteeText || 'Гарантия результата или вернем 100% оплаченной суммы!'}</p>
+          {settings?.siteName || 'Банкротство физических и юридических лиц'}
+        </motion.h1>
+        <motion.p
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.5, delay: 0.1 }}
+          className="text-lg sm:text-xl text-gray-600 mb-8 sm:mb-10 max-w-3xl mx-auto leading-relaxed"
+        >
+          {settings?.description || 'Профессиональная помощь в списании долгов через процедуру банкротства. Более 10 лет опыта и сотни успешных дел.'}
+        </motion.p>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+          className="flex flex-col sm:flex-row gap-4 justify-center items-center"
+        >
+          <button
+            onClick={() => {
+              formRef.current?.scrollIntoView({ behavior: 'smooth' });
+            }}
+            className="w-full sm:w-auto px-8 py-4 bg-blue-600 text-white rounded-xl font-semibold text-lg hover:bg-blue-700 hover-transition"
+          >
+            Получить консультацию
+          </button>
+          <a
+            href="#advantages"
+            onClick={(e) => {
+              e.preventDefault();
+              document.getElementById('advantages')?.scrollIntoView({ behavior: 'smooth' });
+            }}
+            className="w-full sm:w-auto px-8 py-4 bg-white text-blue-600 rounded-xl font-semibold text-lg border-2 border-blue-600 hover:bg-blue-50 hover-transition"
+          >
+            Узнать больше
+          </a>
+        </motion.div>
+        <motion.p
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.5, delay: 0.3 }}
+          className="mt-6 text-sm text-gray-500"
+        >
+          {settings?.guaranteeText || 'Гарантия результата или вернем 100% оплаченной суммы!'}
+        </motion.p>
       </motion.section>
 
       {/* Преимущества */}
       <motion.section
-        initial={{ opacity: 0, y: 40 }}
-        whileInView={{ opacity: 1, y: 0 }}
+        id="advantages"
+        initial={{ opacity: 0 }}
+        whileInView={{ opacity: 1 }}
         viewport={{ once: true, amount: 0.3 }}
         transition={{ duration: 0.7 }}
-        className="w-full max-w-5xl py-8 sm:py-10 grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-8 text-center text-gray-900 mx-auto"
+        className="w-full max-w-5xl py-8 sm:py-10 grid grid-cols-1 sm:grid-cols-3 gap-6 sm:gap-8 text-center text-gray-900 mx-auto px-4"
       >
         {advantagesLoading ? (
           <div className="col-span-3 text-center">Загрузка...</div>
@@ -195,72 +238,149 @@ export default function Home() {
           advantages.map((a, i) => {
             const Icon = a.icon && FiIcons[a.icon as keyof typeof FiIcons];
             return (
-              <div key={a.id} className="flex flex-col items-center">
-                <div className="text-4xl font-bold text-blue-600 mb-2">
-                  {Icon ? <Icon /> : (a.icon || a.value)}
+              <motion.div
+                key={a.id}
+                initial={{ opacity: 0 }}
+                whileInView={{ opacity: 1 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.5, delay: i * 0.12 }}
+                className="bg-white rounded-xl shadow-sm hover:shadow-md p-6 flex flex-col items-center group hover-transition"
+              >
+                <div className="w-16 h-16 rounded-full bg-blue-50 flex items-center justify-center mb-4 group-hover:bg-blue-100 transition-colors duration-300">
+                  <div className="text-3xl text-blue-600">
+                    {Icon ? <Icon /> : (a.icon || a.value)}
+                  </div>
                 </div>
-                <div className="text-gray-700">{a.label}</div>
-              </div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">{a.label}</h3>
+                <p className="text-sm text-gray-600 leading-relaxed">{a.value}</p>
+              </motion.div>
             );
           })
-        ) : (
+        ) :
           <>
-            <div className="flex flex-col items-center">
-              <div className="text-4xl font-bold text-blue-600 mb-2">10+</div>
-              <div className="text-gray-700">Лет опыта</div>
-            </div>
-            <div className="flex flex-col items-center">
-              <div className="text-4xl font-bold text-blue-600 mb-2">437</div>
-              <div className="text-gray-700">Проведённых процедур банкротства</div>
-            </div>
-            <div className="flex flex-col items-center">
-              <div className="text-4xl font-bold text-blue-600 mb-2">314 млн ₽</div>
-              <div className="text-gray-700">Списанных долгов</div>
-            </div>
+            {[{
+              key: 'exp',
+              icon: <div className="text-3xl font-bold text-blue-600">10+</div>,
+              label: 'Лет опыта',
+              value: 'Более 10 лет успешной работы в сфере юридических услуг'
+            }, {
+              key: 'proc',
+              icon: <div className="text-3xl font-bold text-blue-600">437</div>,
+              label: 'Проведённых процедур',
+              value: 'Успешно проведенных процедур банкротства'
+            }, {
+              key: 'sum',
+              icon: <div className="text-3xl font-bold text-blue-600">314млн</div>,
+              label: 'Списанных долгов',
+              value: 'Общая сумма списанных долгов наших клиентов'
+            }].map((item, i) => (
+              <motion.div
+                key={item.key}
+                initial={{ opacity: 0 }}
+                whileInView={{ opacity: 1 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.5, delay: i * 0.12 }}
+                className="bg-white rounded-xl shadow-sm hover:shadow-md p-6 flex flex-col items-center group hover-transition"
+              >
+                <div className="w-16 h-16 rounded-full bg-blue-50 flex items-center justify-center mb-4 group-hover:bg-blue-100 transition-colors duration-300">
+                  {item.icon}
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">{item.label}</h3>
+                <p className="text-sm text-gray-600 leading-relaxed">{item.value}</p>
+              </motion.div>
+            ))}
           </>
-        )}
+        }
       </motion.section>
 
       {/* Услуги */}
       <motion.section
-        initial={{ opacity: 0, y: 40 }}
-        whileInView={{ opacity: 1, y: 0 }}
+        initial={{ opacity: 0 }}
+        whileInView={{ opacity: 1 }}
         viewport={{ once: true, amount: 0.3 }}
         transition={{ duration: 0.7 }}
-        className="w-full max-w-5xl py-8 sm:py-10 px-2 sm:px-4 text-gray-900 mx-auto"
+        className="w-full max-w-5xl py-8 sm:py-10 mx-auto px-4"
       >
-        <h2 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6 text-center">Наши услуги</h2>
-        {servicesLoading ? (
-          <div className="text-center">Загрузка...</div>
-        ) : servicesError ? (
-          <div className="text-center text-red-600">{servicesError}</div>
-        ) : services.length > 0 ? (
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-6 justify-items-center">
-            {services.map((s, i) => {
+        <motion.h2 
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.5 }}
+          className="text-2xl sm:text-3xl font-bold text-center mb-8 sm:mb-10 text-gray-900"
+        >
+          Наши услуги
+        </motion.h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8 text-center text-gray-900">
+          {servicesLoading ? (
+            <div className="col-span-3 text-center">Загрузка...</div>
+          ) : servicesError ? (
+            <div className="col-span-3 text-red-600">{servicesError}</div>
+          ) : services.length > 0 ? (
+            services.map((s, i) => {
               const Icon = s.icon && FiIcons[s.icon as keyof typeof FiIcons];
               return (
                 <motion.div
                   key={s.id}
-                  initial={{ opacity: 0, y: 30 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true, amount: 0.3 }}
-                  transition={{ duration: 0.5, delay: i * 0.1 }}
-                  className="bg-white rounded-lg shadow p-2 sm:p-3 flex flex-col items-center text-center min-h-20 hover:shadow-xl hover:-translate-y-1 transition-transform duration-200 cursor-pointer w-full max-w-[200px]"
-                  whileHover={{ scale: 1.04 }}
-                  whileTap={{ scale: 0.97 }}
+                  initial={{ opacity: 0 }}
+                  whileInView={{ opacity: 1 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.5, delay: i * 0.12 }}
+                  className="bg-white rounded-xl shadow-sm hover:shadow-md p-6 flex flex-col items-center group border border-gray-100 hover-transition"
                 >
-                  <div className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center mb-1 text-2xl">
+                  <div className="text-2xl text-blue-600 mb-4">
                     {Icon ? <Icon /> : s.icon}
                   </div>
-                  <div className="font-semibold mb-2 text-xs sm:text-base">{s.title}</div>
-                  <div className="text-xs text-gray-500">{s.description}</div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-3">{s.title}</h3>
+                  <p className="text-sm text-gray-600 leading-relaxed">{s.description}</p>
                 </motion.div>
               );
-            })}
-          </div>
-        ) : (
-          <div className="text-center text-gray-400">Нет услуг</div>
-        )}
+            })
+          ) :
+            <>
+              {[
+                {
+                  key: 'arbitration',
+                  icon: <FiIcons.FiBriefcase />,
+                  title: 'Арбитражные споры',
+                  description: 'Защита интересов в арбитражных судах'
+                },
+                {
+                  key: 'bankruptcy',
+                  icon: <FiIcons.FiFileText />,
+                  title: 'Банкротство физических лиц',
+                  description: 'Списание долгов через процедуру банкротства'
+                },
+                {
+                  key: 'realestate',
+                  icon: <FiIcons.FiHome />,
+                  title: 'Споры с недвижимостью',
+                  description: 'Решение проблем с недвижимым имуществом'
+                },
+                {
+                  key: 'family',
+                  icon: <FiIcons.FiUsers />,
+                  title: 'Семейные споры',
+                  description: 'Юридическая помощь в семейных делах'
+                }
+              ].map((item, i) => (
+                <motion.div
+                  key={item.key}
+                  initial={{ opacity: 0 }}
+                  whileInView={{ opacity: 1 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.5, delay: i * 0.12 }}
+                  className="bg-white rounded-xl shadow-sm hover:shadow-md p-6 flex flex-col items-center group border border-gray-100 hover-transition"
+                >
+                  <div className="text-2xl text-blue-600 mb-4">
+                    {item.icon}
+                  </div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-3">{item.title}</h3>
+                  <p className="text-sm text-gray-600 leading-relaxed">{item.description}</p>
+                </motion.div>
+              ))}
+            </>
+          }
+        </div>
       </motion.section>
 
       {/* Команда */}
@@ -446,7 +566,7 @@ export default function Home() {
           />
           <button
             type="submit"
-            className="bg-blue-600 text-white px-4 sm:px-6 py-2 sm:py-2.5 rounded hover:bg-blue-700 transition disabled:opacity-60 text-sm sm:text-base"
+            className="bg-blue-600 text-white px-4 sm:px-6 py-2 sm:py-2.5 rounded hover:bg-blue-700 hover-transition disabled:opacity-60 text-sm sm:text-base"
             disabled={loading}
           >
             {loading ? "Отправка..." : "Отправить"}

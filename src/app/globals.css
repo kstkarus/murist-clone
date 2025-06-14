@@ -48,3 +48,15 @@ html, body {
 .animate-glow {
   animation: glow 2s ease-in-out infinite;
 }
+
+/* Только для элементов с hover эффектом */
+.hover-transition {
+  transition: background-color 0.2s ease-in-out, transform 0.2s ease-in-out;
+}
+
+/* Для анимированных секций */
+.motion-safe {
+  will-change: transform, opacity;
+  backface-visibility: hidden;
+  transform: translateZ(0);
+}
