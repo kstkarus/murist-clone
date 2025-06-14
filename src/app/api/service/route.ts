@@ -1,40 +1,42 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '../auth/[...nextauth]/route';
+import { PrismaClient } from '@prisma/client';
+import { getServerSession } from '@/lib/getServerSession';
+
+const prismaClient = new PrismaClient();
 
 export async function GET() {
-  const services = await prisma.service.findMany({ orderBy: { order: 'asc' } });
+  const services = await prismaClient.service.findMany({ orderBy: { order: 'asc' } });
   return NextResponse.json({ services });
 }
 
 export async function POST(req: NextRequest) {
-  const session = await getServerSession(authOptions);
-  if (!session || session.user?.role !== 'admin') {
+  const session = await getServerSession(req);
+  if (!session || session.role !== 'admin') {
     return NextResponse.json({ error: 'Требуется авторизация' }, { status: 401 });
   }
   const data = await req.json();
-  const service = await prisma.service.create({ data });
+  const service = await prismaClient.service.create({ data });
   return NextResponse.json(service);
 }
 
 export async function PUT(req: NextRequest) {
-  const session = await getServerSession(authOptions);
-  if (!session || session.user?.role !== 'admin') {
+  const session = await getServerSession(req);
+  if (!session || session.role !== 'admin') {
     return NextResponse.json({ error: 'Требуется авторизация' }, { status: 401 });
   }
   const data = await req.json();
   const { id, ...rest } = data;
-  const service = await prisma.service.update({ where: { id }, data: rest });
+  const service = await prismaClient.service.update({ where: { id }, data: rest });
   return NextResponse.json(service);
 }
 
 export async function DELETE(req: NextRequest) {
-  const session = await getServerSession(authOptions);
-  if (!session || session.user?.role !== 'admin') {
+  const session = await getServerSession(req);
+  if (!session || session.role !== 'admin') {
     return NextResponse.json({ error: 'Требуется авторизация' }, { status: 401 });
   }
   const data = await req.json();
-  await prisma.service.delete({ where: { id: data.id } });
+  await prismaClient.service.delete({ where: { id: data.id } });
   return NextResponse.json({ ok: true });
 } 

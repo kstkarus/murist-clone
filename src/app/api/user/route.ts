@@ -2,8 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import pino from 'pino';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '../auth/[...nextauth]/route';
+import { getServerSession } from '@/lib/getServerSession';
 
 const prisma = new PrismaClient();
 const logger = pino({ level: 'info' });
@@ -18,8 +17,8 @@ export async function POST(req: NextRequest) {
   }
   rateLimitMap.set(ip, now);
   
-  const session = await getServerSession(authOptions);
-  if (!session || session.user?.role !== 'admin') {
+  const session = await getServerSession(req);
+  if (!session || session.role !== 'admin') {
     return NextResponse.json({ error: 'Нет доступа' }, { status: 401 });
   }
 
@@ -40,7 +39,7 @@ export async function POST(req: NextRequest) {
     // Хэшируем пароль
     const hashedPassword = await bcrypt.hash(password, 10);
     const newUser = await prisma.user.create({ data: { username, password: hashedPassword, role, notify, email } });
-    logger.info({ action: 'create_user', admin: session.user.username, username, email, role });
+    logger.info({ action: 'create_user', admin: session.username, username, email, role });
     return NextResponse.json({ success: true, user: { id: newUser.id, username: newUser.username, role: newUser.role, email: newUser.email, notify: newUser.notify } });
   } catch (error) {
     console.error('Error creating user:', error);
@@ -50,7 +49,7 @@ export async function POST(req: NextRequest) {
 
 // Получение списка пользователей (только для авторизованных)
 export async function GET(req: NextRequest) {
-  const session = await getServerSession(authOptions);
+  const session = await getServerSession(req);
   if (!session) return NextResponse.json({ error: 'Нет доступа' }, { status: 401 });
   try {
     const users = await prisma.user.findMany({ select: { id: true, username: true, role: true } });
@@ -61,26 +60,10 @@ export async function GET(req: NextRequest) {
   }
 }
 
-// Удаление пользователя (только для admin)
-export async function DELETE(req: NextRequest) {
-  const session = await getServerSession(authOptions);
-  if (!session || session.user?.role !== 'admin') return NextResponse.json({ error: 'Нет доступа' }, { status: 401 });
-  try {
-    const { id } = await req.json();
-    if (!id) return NextResponse.json({ error: 'Не указан id' }, { status: 400 });
-    await prisma.user.delete({ where: { id } });
-    logger.info({ action: 'delete_user', admin: session.user.username, id });
-    return NextResponse.json({ success: true });
-  } catch (error) {
-    console.error('Error deleting user:', error);
-    return NextResponse.json({ error: 'Ошибка сервера.' }, { status: 500 });
-  }
-}
-
 // Обновление notify/email (только для admin)
 export async function PATCH(req: NextRequest) {
-  const session = await getServerSession(authOptions);
-  if (!session || session.user?.role !== 'admin') return NextResponse.json({ error: 'Нет доступа' }, { status: 401 });
+  const session = await getServerSession(req);
+  if (!session || session.role !== 'admin') return NextResponse.json({ error: 'Нет доступа' }, { status: 401 });
   try {
     const { id, notify, email, password } = await req.json();
     if (typeof id !== 'string') {
@@ -91,10 +74,24 @@ export async function PATCH(req: NextRequest) {
     if (typeof email === 'string') data.email = email;
     if (typeof password === 'string' && password.length > 0) data.password = await bcrypt.hash(password, 10);
     await prisma.user.update({ where: { id }, data });
-    logger.info({ action: 'update_user', admin: session.user.username, id, data });
+    logger.info({ action: 'update_user', admin: session.username, id, data });
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Error updating user:', error);
+    return NextResponse.json({ error: 'Ошибка сервера.' }, { status: 500 });
+  }
+}
+
+// Удаление пользователя (только для admin)
+export async function DELETE(req: NextRequest) {
+  const session = await getServerSession(req);
+  if (!session || session.role !== 'admin') return NextResponse.json({ error: 'Нет доступа' }, { status: 401 });
+  try {
+    const { id } = await req.json();
+    await prisma.user.delete({ where: { id } });
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error('Error deleting user:', error);
     return NextResponse.json({ error: 'Ошибка сервера.' }, { status: 500 });
   }
 } 

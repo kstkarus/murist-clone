@@ -10,8 +10,10 @@
     "seed": "node prisma/seed.js"
   },
   "dependencies": {
+    "@auth/core": "^0.39.1",
+    "@auth/nextjs": "^0.0.0-380f8d56",
     "@auth/prisma-adapter": "^2.9.1",
-    "@prisma/client": "^6.9.0",
+    "@prisma/client": "^5.22.0",
     "@types/bcrypt": "^5.0.2",
     "bcrypt": "^6.0.0",
     "bcryptjs": "^2.4.3",
@@ -22,6 +24,7 @@
     "next-auth": "^4.24.11",
     "nodemailer": "^7.0.3",
     "pino": "^8.21.0",
+    "prisma": "^5.12.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-icons": "^5.5.0",
@@ -39,7 +42,6 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "15.3.3",
-    "prisma": "^6.9.0",
     "tailwindcss": "^4",
     "typescript": "^5"
   }

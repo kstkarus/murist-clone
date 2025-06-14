@@ -1,9 +1,11 @@
-import NextAuth, { AuthOptions } from 'next-auth';
+import NextAuth from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
-import { prisma } from '@/lib/prisma';
-import { compare } from 'bcrypt';
+import { PrismaClient } from '@prisma/client';
+import bcrypt from 'bcryptjs';
 
-export const authOptions: AuthOptions = {
+const prisma = new PrismaClient();
+
+const handler = NextAuth({
   providers: [
     CredentialsProvider({
       name: 'Credentials',
@@ -12,45 +14,38 @@ export const authOptions: AuthOptions = {
         password: { label: "Password", type: "password" }
       },
       async authorize(credentials) {
-        if (!credentials?.username || !credentials?.password) {
-          return null;
-        }
-
+        if (!credentials?.username || !credentials?.password) return null;
+        
         const user = await prisma.user.findUnique({
           where: { username: credentials.username }
         });
 
-        if (!user) {
-          return null;
-        }
+        if (!user) return null;
 
-        const isPasswordValid = await compare(credentials.password, user.password);
-
-        if (!isPasswordValid) {
-          return null;
-        }
+        const isValid = await bcrypt.compare(credentials.password, user.password);
+        if (!isValid) return null;
 
         return {
-          id: user.id.toString(),
+          id: user.id,
           username: user.username,
           role: user.role,
-          email: user.email || undefined
+          email: user.email
         };
       }
     })
   ],
   callbacks: {
-    async jwt({ token, user }: any) {
+    async jwt({ token, user }) {
       if (user) {
         token.role = user.role;
         token.username = user.username;
       }
       return token;
     },
-    async session({ session, token }: any) {
+    async session({ session, token }) {
       if (token) {
-        session.user.role = token.role;
-        session.user.username = token.username;
+        (session.user as any).role = token.role;
+        (session.user as any).username = token.username;
       }
       return session;
     }
@@ -59,12 +54,9 @@ export const authOptions: AuthOptions = {
     signIn: '/admin',
   },
   session: {
-    strategy: 'jwt' as const,
-    maxAge: 30 * 24 * 60 * 60, // 30 дней
+    strategy: 'jwt',
   },
-  secret: process.env.NEXTAUTH_SECRET,
-  debug: process.env.NODE_ENV === 'development',
-};
+  debug: true,
+});
 
-const handler = NextAuth(authOptions);
 export { handler as GET, handler as POST }; 

@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '../auth/[...nextauth]/route';
+import { getServerSession } from '@/lib/getServerSession';
 
 const prisma = new PrismaClient();
 
@@ -20,9 +19,9 @@ export async function GET() {
 
 // Создание отзыва (только для admin)
 export async function POST(req: NextRequest) {
-  const session = await getServerSession(authOptions);
-  if (!session || session.user?.role !== 'admin') {
-    return NextResponse.json({ error: 'Нет доступа' }, { status: 401 });
+  const session = await getServerSession(req);
+  if (!session || session.role !== 'admin') {
+    return NextResponse.json({ error: 'Требуется авторизация' }, { status: 401 });
   }
 
   try {
@@ -36,18 +35,16 @@ export async function POST(req: NextRequest) {
 }
 
 // Обновление отзыва (только для admin)
-export async function PATCH(req: NextRequest) {
-  const session = await getServerSession(authOptions);
-  if (!session || session.user?.role !== 'admin') {
-    return NextResponse.json({ error: 'Нет доступа' }, { status: 401 });
+export async function PUT(req: NextRequest) {
+  const session = await getServerSession(req);
+  if (!session || session.role !== 'admin') {
+    return NextResponse.json({ error: 'Требуется авторизация' }, { status: 401 });
   }
 
   try {
-    const { id, ...data } = await req.json();
-    const review = await prisma.review.update({
-      where: { id },
-      data
-    });
+    const data = await req.json();
+    const { id, ...rest } = data;
+    const review = await prisma.review.update({ where: { id }, data: rest });
     return NextResponse.json(review);
   } catch (error) {
     console.error('Error updating review:', error);
@@ -57,15 +54,15 @@ export async function PATCH(req: NextRequest) {
 
 // Удаление отзыва (только для admin)
 export async function DELETE(req: NextRequest) {
-  const session = await getServerSession(authOptions);
-  if (!session || session.user?.role !== 'admin') {
-    return NextResponse.json({ error: 'Нет доступа' }, { status: 401 });
+  const session = await getServerSession(req);
+  if (!session || session.role !== 'admin') {
+    return NextResponse.json({ error: 'Требуется авторизация' }, { status: 401 });
   }
 
   try {
-    const { id } = await req.json();
-    await prisma.review.delete({ where: { id } });
-    return NextResponse.json({ success: true });
+    const data = await req.json();
+    await prisma.review.delete({ where: { id: data.id } });
+    return NextResponse.json({ ok: true });
   } catch (error) {
     console.error('Error deleting review:', error);
     return NextResponse.json({ error: 'Ошибка сервера.' }, { status: 500 });

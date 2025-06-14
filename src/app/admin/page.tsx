@@ -94,7 +94,7 @@ export default function AdminPanel() {
   useEffect(() => {
     if (status === 'authenticated' && session?.user) {
       fetchRequests();
-      if (session.user.role === 'admin') {
+      if ((session.user as any).role === 'admin') {
         fetchUsers();
         fetchReviews();
       }
@@ -666,8 +666,30 @@ export default function AdminPanel() {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="bg-white p-8 rounded-xl shadow-sm max-w-md w-full">
-          <h1 className="text-2xl font-bold text-center mb-6">Доступ запрещен</h1>
-          <p className="text-gray-600 text-center">Пожалуйста, войдите в систему для доступа к панели управления.</p>
+          <h1 className="text-2xl font-bold text-center mb-6">Вход в админ-панель</h1>
+          <form onSubmit={handleLogin} className="space-y-4">
+            <input
+              type="text"
+              placeholder="Имя пользователя"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white text-gray-900 placeholder-gray-500"
+            />
+            <input
+              type="password"
+              placeholder="Пароль"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white text-gray-900 placeholder-gray-500"
+            />
+            {error && <div className="text-red-600 text-sm">{error}</div>}
+            <button
+              type="submit"
+              className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            >
+              Войти
+            </button>
+          </form>
         </div>
       </div>
     );
