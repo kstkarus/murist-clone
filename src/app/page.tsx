@@ -1,6 +1,6 @@
 'use client';
 import Image from "next/image";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useInitialData } from '@/hooks/useInitialData';
 import Loading from './loading';
@@ -41,6 +41,11 @@ export default function Home() {
       console.error('Ошибка получения CSRF-токена:', error);
     }
   }
+
+  // Получаем CSRF токен при загрузке страницы
+  useEffect(() => {
+    getCsrfToken();
+  }, []);
 
   // Маска для телефона
   function formatPhone(input: string, prevValue = "") {

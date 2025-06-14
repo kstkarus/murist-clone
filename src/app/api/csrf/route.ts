@@ -2,21 +2,25 @@ import { NextRequest, NextResponse } from 'next/server';
 import { generateCsrfSecret, generateCsrfToken } from '@/lib/csrf';
 
 export async function GET(req: NextRequest) {
-  // Генерируем новый секрет и токен
-  const secret = generateCsrfSecret();
-  const token = generateCsrfToken(secret);
+  try {
+    // Генерируем новый секрет
+    const secret = generateCsrfSecret();
+    // Генерируем токен на основе секрета
+    const token = generateCsrfToken(secret);
 
-  // Создаем ответ
-  const res = NextResponse.json({ token });
+    // Создаем ответ
+    const response = NextResponse.json({ token });
 
-  // Устанавливаем cookie с секретом
-  res.cookies.set('csrfSecret', secret, {
-    httpOnly: false, // Должен быть доступен для JavaScript
-    path: '/',
-    maxAge: 60 * 60 * 24, // 24 часа
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax'
-  });
+    // Устанавливаем cookie с секретом
+    response.cookies.set('csrfSecret', secret, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      path: '/'
+    });
 
-  return res;
+    return response;
+  } catch (error) {
+    return NextResponse.json({ error: 'Failed to generate CSRF token' }, { status: 500 });
+  }
 } 
