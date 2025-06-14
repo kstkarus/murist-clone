@@ -3,7 +3,6 @@
 
 generator client {
   provider = "prisma-client-js"
-  output   = "../src/generated/prisma"
 }
 
 datasource db {
@@ -11,13 +10,52 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
 model User {
-  id       Int    @id @default(autoincrement())
-  username String @unique
-  email    String? @unique
-  password String
-  role     String // 'admin' или 'user'
-  notify   Boolean @default(true) // получать уведомления
+  id            String    @id @default(cuid())
+  username      String    @unique
+  password      String
+  role          String    @default("user")
+  email         String?
+  notify        Boolean   @default(false)
+  accounts      Account[]
+  sessions      Session[]
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt @default(now())
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
 }
 
 model Request {
@@ -25,4 +63,54 @@ model Request {
   name      String
   phone     String
   createdAt DateTime @default(now())
+}
+
+model Settings {
+  id            Int      @id @default(1)
+  siteName      String   @default("")
+  phone         String   @default("")
+  email         String   @default("")
+  address       String   @default("")
+  workingHours  String   @default("")
+  description   String   @default("")
+  vkLink        String   @default("")
+  telegramLink  String   @default("")
+  guaranteeText String   @default("Гарантия результата или вернем 100% оплаченной суммы!")
+  updatedAt     DateTime @updatedAt
+}
+
+model Service {
+  id        Int      @id @default(autoincrement())
+  title     String
+  description String
+  icon      String?   // путь к иконке или emoji
+  order     Int       @default(0)
+}
+
+model Advantage {
+  id        Int      @id @default(autoincrement())
+  value     String   // цифра или короткий текст
+  label     String   // подпись
+  icon      String?  // путь к иконке или emoji
+  order     Int      @default(0)
+}
+
+model TeamMember {
+  id        Int    @id @default(autoincrement())
+  name      String
+  position  String
+  photo     String?
+  bio       String?
+  order     Int    @default(0)
+}
+
+model Review {
+  id        Int      @id @default(autoincrement())
+  author    String   // имя автора
+  text      String   // текст отзыва
+  rating    Int      @default(5) // оценка от 1 до 5
+  photo     String?  // фото автора (опционально)
+  order     Int      @default(0) // порядок отображения
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
