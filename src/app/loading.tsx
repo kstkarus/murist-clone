@@ -7,10 +7,10 @@ export default function Loading() {
   const [isVisible, setIsVisible] = useState(true);
 
   useEffect(() => {
-    // Даем время на полную анимацию (2.5 секунды) перед возможным редиректом
+    // Увеличиваем время на полную анимацию до 3 секунд
     const timer = setTimeout(() => {
       setIsVisible(false);
-    }, 2500);
+    }, 3000);
 
     return () => clearTimeout(timer);
   }, []);
@@ -18,7 +18,12 @@ export default function Loading() {
   if (!isVisible) return null;
 
   return (
-    <div className="fixed inset-0 bg-white flex items-center justify-center z-50">
+    <motion.div 
+      className="fixed inset-0 bg-white flex items-center justify-center z-50"
+      initial={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.5 }}
+    >
       <div className="text-center">
         <motion.div
           className="mt-6 flex justify-center gap-1"
@@ -43,6 +48,6 @@ export default function Loading() {
           ))}
         </motion.div>
       </div>
-    </div>
+    </motion.div>
   );
 } 

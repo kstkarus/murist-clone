@@ -1,11 +1,8 @@
 'use client';
 import Image from "next/image";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef } from "react";
 import { motion } from "framer-motion";
-import { useSettings } from '@/hooks/useSettings';
-import { useServices } from '@/hooks/useServices';
-import { useAdvantages } from '@/hooks/useAdvantages';
-import { useTeam } from '@/hooks/useTeam';
+import { useInitialData } from '@/hooks/useInitialData';
 import Loading from './loading';
 import Cookies from 'js-cookie';
 import * as FiIcons from 'react-icons/fi';
@@ -26,15 +23,10 @@ export default function Home() {
   const [success, setSuccess] = useState("");
   const [error, setError] = useState("");
   const [phoneFocused, setPhoneFocused] = useState(false);
+  const [privacyAccepted, setPrivacyAccepted] = useState(false);
+  const [privacyError, setPrivacyError] = useState(false);
   const formRef = useRef<HTMLFormElement | null>(null);
-  const { settings, loading: settingsLoading, error: settingsError } = useSettings();
-  const { services, loading: servicesLoading, error: servicesError } = useServices();
-  const { advantages, loading: advantagesLoading, error: advantagesError } = useAdvantages();
-  const { team, loading: teamLoading, error: teamError } = useTeam();
-  const [reviews, setReviews] = useState<Review[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [reviewsLoading, setReviewsLoading] = useState(true);
-  const [reviewsError, setReviewsError] = useState<string | null>(null);
+  const { settings, services, advantages, team, reviews, isLoading, error: dataError } = useInitialData();
   const [csrfToken, setCsrfToken] = useState<string>('');
 
   // Получение CSRF-токена
@@ -83,6 +75,15 @@ export default function Home() {
     setLoading(true);
     setSuccess("");
     setError("");
+    setPrivacyError(false);
+
+    // Проверка согласия на обработку персональных данных
+    if (!privacyAccepted) {
+      setPrivacyError(true);
+      setLoading(false);
+      return;
+    }
+
     // Проверка номера телефона
     const phonePattern = /^\+7 \(\d{3}\) \d{3} \d{2} \d{2}$/;
     if (!phonePattern.test(phone)) {
@@ -115,40 +116,11 @@ export default function Home() {
     }
   }
 
-  useEffect(() => {
-    const loadData = async () => {
-      try {
-        setReviewsLoading(true);
-        const [reviewsData] = await Promise.all([
-          fetch('/api/review').then(res => res.json()),
-          getCsrfToken(),
-          // другие загрузки данных...
-        ]);
-        setReviews(reviewsData.reviews || []);
-      } catch (error) {
-        setReviewsError('Ошибка загрузки отзывов');
-        console.error('Error loading reviews:', error);
-      } finally {
-        setReviewsLoading(false);
-        setTimeout(() => setIsLoading(false), 2000);
-      }
-    };
-    loadData();
-  }, []);
-
   if (isLoading) {
     return <Loading />;
   }
 
-  if (settingsLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-xl">Загрузка...</div>
-      </div>
-    );
-  }
-
-  if (settingsError) {
+  if (dataError) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-xl text-red-600">Ошибка загрузки данных</div>
@@ -230,11 +202,7 @@ export default function Home() {
         transition={{ duration: 0.7 }}
         className="w-full max-w-5xl py-8 sm:py-10 grid grid-cols-1 sm:grid-cols-3 gap-6 sm:gap-8 text-center text-gray-900 mx-auto px-4"
       >
-        {advantagesLoading ? (
-          <div className="col-span-3 text-center">Загрузка...</div>
-        ) : advantagesError ? (
-          <div className="col-span-3 text-red-600">{advantagesError}</div>
-        ) : advantages.length > 0 ? (
+        {advantages.length > 0 ? (
           advantages.map((a, i) => {
             const Icon = a.icon && FiIcons[a.icon as keyof typeof FiIcons];
             return (
@@ -246,51 +214,57 @@ export default function Home() {
                 transition={{ duration: 0.5, delay: i * 0.12 }}
                 className="bg-white rounded-xl shadow-sm hover:shadow-md p-6 flex flex-col items-center group hover-transition"
               >
-                <div className="w-16 h-16 rounded-full bg-blue-50 flex items-center justify-center mb-4 group-hover:bg-blue-100 transition-colors duration-300">
-                  <div className="text-3xl text-blue-600">
-                    {Icon ? <Icon /> : (a.icon || a.value)}
-                  </div>
+                <div className="text-3xl text-blue-600 mb-4">
+                  {Icon && <Icon />}
                 </div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">{a.label}</h3>
-                <p className="text-sm text-gray-600 leading-relaxed">{a.value}</p>
+                <h3 className="text-lg font-semibold mb-2">{a.label}</h3>
+                <p className="text-gray-600 text-center">{a.value}</p>
               </motion.div>
             );
           })
-        ) :
+        ) : (
           <>
-            {[{
-              key: 'exp',
-              icon: <div className="text-3xl font-bold text-blue-600">10+</div>,
-              label: 'Лет опыта',
-              value: 'Более 10 лет успешной работы в сфере юридических услуг'
-            }, {
-              key: 'proc',
-              icon: <div className="text-3xl font-bold text-blue-600">437</div>,
-              label: 'Проведённых процедур',
-              value: 'Успешно проведенных процедур банкротства'
-            }, {
-              key: 'sum',
-              icon: <div className="text-3xl font-bold text-blue-600">314млн</div>,
-              label: 'Списанных долгов',
-              value: 'Общая сумма списанных долгов наших клиентов'
-            }].map((item, i) => (
-              <motion.div
-                key={item.key}
-                initial={{ opacity: 0 }}
-                whileInView={{ opacity: 1 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.5, delay: i * 0.12 }}
-                className="bg-white rounded-xl shadow-sm hover:shadow-md p-6 flex flex-col items-center group hover-transition"
-              >
-                <div className="w-16 h-16 rounded-full bg-blue-50 flex items-center justify-center mb-4 group-hover:bg-blue-100 transition-colors duration-300">
-                  {item.icon}
-                </div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">{item.label}</h3>
-                <p className="text-sm text-gray-600 leading-relaxed">{item.value}</p>
-              </motion.div>
-            ))}
+            <motion.div
+              initial={{ opacity: 0 }}
+              whileInView={{ opacity: 1 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.5 }}
+              className="bg-white rounded-xl shadow-sm hover:shadow-md p-6 flex flex-col items-center group hover-transition"
+            >
+              <div className="text-3xl text-blue-600 mb-4">
+                <FiIcons.FiCheckCircle />
+              </div>
+              <h3 className="text-lg font-semibold mb-2">Бесплатная консультация</h3>
+              <p className="text-gray-600 text-center">Получите бесплатную консультацию от наших специалистов</p>
+            </motion.div>
+            <motion.div
+              initial={{ opacity: 0 }}
+              whileInView={{ opacity: 1 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.5, delay: 0.12 }}
+              className="bg-white rounded-xl shadow-sm hover:shadow-md p-6 flex flex-col items-center group hover-transition"
+            >
+              <div className="text-3xl text-blue-600 mb-4">
+                <FiIcons.FiShield />
+              </div>
+              <h3 className="text-lg font-semibold mb-2">Гарантия результата</h3>
+              <p className="text-gray-600 text-center">Мы гарантируем результат или вернем деньги</p>
+            </motion.div>
+            <motion.div
+              initial={{ opacity: 0 }}
+              whileInView={{ opacity: 1 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.5, delay: 0.24 }}
+              className="bg-white rounded-xl shadow-sm hover:shadow-md p-6 flex flex-col items-center group hover-transition"
+            >
+              <div className="text-3xl text-blue-600 mb-4">
+                <FiIcons.FiClock />
+              </div>
+              <h3 className="text-lg font-semibold mb-2">Быстрое решение</h3>
+              <p className="text-gray-600 text-center">Решаем проблемы в кратчайшие сроки</p>
+            </motion.div>
           </>
-        }
+        )}
       </motion.section>
 
       {/* Услуги */}
@@ -311,11 +285,7 @@ export default function Home() {
           Наши услуги
         </motion.h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8 text-center text-gray-900">
-          {servicesLoading ? (
-            <div className="col-span-3 text-center">Загрузка...</div>
-          ) : servicesError ? (
-            <div className="col-span-3 text-red-600">{servicesError}</div>
-          ) : services.length > 0 ? (
+          {services.length > 0 ? (
             services.map((s, i) => {
               const Icon = s.icon && FiIcons[s.icon as keyof typeof FiIcons];
               return (
@@ -392,11 +362,7 @@ export default function Home() {
         className="w-full max-w-5xl py-8 sm:py-10 px-2 sm:px-4 text-gray-900 mx-auto"
       >
         <h2 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6 text-center">Наша команда</h2>
-        {teamLoading ? (
-          <div className="text-center">Загрузка...</div>
-        ) : teamError ? (
-          <div className="text-center text-red-600">{teamError}</div>
-        ) : team.length > 0 ? (
+        {team.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 justify-items-center">
             {team.map(member => (
               <div key={member.id} className="bg-white rounded-lg shadow p-4 flex flex-col items-center text-center w-full max-w-[300px]">
@@ -427,11 +393,7 @@ export default function Home() {
         className="w-full max-w-5xl py-8 sm:py-10 px-2 sm:px-4 text-gray-900 mx-auto"
       >
         <h2 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6 text-center">Отзывы наших клиентов</h2>
-        {reviewsLoading ? (
-          <div className="text-center">Загрузка...</div>
-        ) : reviewsError ? (
-          <div className="text-center text-red-600">{reviewsError}</div>
-        ) : reviews.length > 0 ? (
+        {reviews.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 justify-items-center">
             {reviews.map(review => (
               <div key={review.id} className="bg-white p-6 rounded-lg shadow-md w-full max-w-[300px]">
@@ -564,6 +526,34 @@ export default function Home() {
             onChange={e => setPhone(formatPhone(e.target.value, phone))}
             required
           />
+          <div className={`flex items-start space-x-2 ${privacyError ? 'text-red-600' : ''}`}>
+            <input
+              type="checkbox"
+              id="privacy"
+              checked={privacyAccepted}
+              onChange={(e) => {
+                setPrivacyAccepted(e.target.checked);
+                setPrivacyError(false);
+              }}
+              className={`mt-1 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 ${privacyError ? 'border-red-600' : ''}`}
+            />
+            <label htmlFor="privacy" className="text-sm text-gray-600">
+              Я согласен на обработку{' '}
+              <a
+                href="/privacy"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-600 hover:text-blue-800 underline"
+              >
+                персональных данных
+              </a>
+            </label>
+          </div>
+          {privacyError && (
+            <p className="text-sm text-red-600">Необходимо согласиться с условиями обработки персональных данных</p>
+          )}
+          {error && <div className="text-red-600 text-xs sm:text-sm mt-2">{error}</div>}
+          {success && <div className="text-green-600 text-xs sm:text-sm mt-2">{success}</div>}
           <button
             type="submit"
             className="bg-blue-600 text-white px-4 sm:px-6 py-2 sm:py-2.5 rounded hover:bg-blue-700 hover-transition disabled:opacity-60 text-sm sm:text-base"
@@ -571,8 +561,6 @@ export default function Home() {
           >
             {loading ? "Отправка..." : "Отправить"}
           </button>
-          {success && <div className="text-green-600 text-xs sm:text-sm mt-2">{success}</div>}
-          {error && <div className="text-red-600 text-xs sm:text-sm mt-2">{error}</div>}
         </form>
       </motion.section>
 

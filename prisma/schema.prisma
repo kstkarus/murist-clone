@@ -10,33 +10,6 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model Account {
-  id                String  @id @default(cuid())
-  userId            String
-  type              String
-  provider          String
-  providerAccountId String
-  refresh_token     String?
-  access_token      String?
-  expires_at        Int?
-  token_type        String?
-  scope             String?
-  id_token          String?
-  session_state     String?
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([provider, providerAccountId])
-}
-
-model Session {
-  id           String   @id @default(cuid())
-  sessionToken String   @unique
-  userId       String
-  expires      DateTime
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-}
-
 model User {
   id            String    @id @default(cuid())
   username      String    @unique
@@ -44,10 +17,15 @@ model User {
   role          String    @default("user")
   email         String?   @unique
   notify        Boolean   @default(false)
-  accounts      Account[]
-  sessions      Session[]
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt @default(now())
+}
+
+model Request {
+  id        Int      @id @default(autoincrement())
+  name      String
+  phone     String
+  createdAt DateTime @default(now())
 }
 
 model VerificationToken {
@@ -56,13 +34,6 @@ model VerificationToken {
   expires    DateTime
 
   @@unique([identifier, token])
-}
-
-model Request {
-  id        Int      @id @default(autoincrement())
-  name      String
-  phone     String
-  createdAt DateTime @default(now())
 }
 
 model Settings {
