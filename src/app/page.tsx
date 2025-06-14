@@ -29,6 +29,18 @@ export default function Home() {
   const { settings, services, advantages, team, reviews, isLoading, error: dataError } = useInitialData();
   const [csrfToken, setCsrfToken] = useState<string>('');
 
+  // Управление скроллом во время загрузки
+  useEffect(() => {
+    if (isLoading) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'auto';
+    }
+    return () => {
+      document.body.style.overflow = 'auto';
+    };
+  }, [isLoading]);
+
   // Получение CSRF-токена
   async function getCsrfToken() {
     try {
