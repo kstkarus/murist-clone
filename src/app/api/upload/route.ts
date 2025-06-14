@@ -1,18 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { writeFile } from 'fs/promises';
 import path from 'path';
-import { authOptions } from '../auth/[...nextauth]/route';
+import { getUserFromRequest } from '@/lib/auth';
 
-export const config = {
-  api: {
-    bodyParser: false,
-  },
-};
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
 
 export async function POST(req: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session || session.user?.role !== 'admin') {
+    const user = getUserFromRequest(req);
+    if (!user || user.role !== 'admin') {
       return NextResponse.json({ error: 'Нет доступа' }, { status: 401 });
     }
 
