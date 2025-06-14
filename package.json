@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "seed": "node prisma/seed.js"
+    "seed": "node prisma/seed.js",
+    "postinstall": "npm install --legacy-peer-deps"
   },
   "dependencies": {
     "@auth/core": "^0.39.1",
@@ -44,5 +45,8 @@
     "eslint-config-next": "15.3.3",
     "tailwindcss": "^4",
     "typescript": "^5"
+  },
+  "resolutions": {
+    "nodemailer": "^6.10.1"
   }
 }
