@@ -7,6 +7,8 @@ import { useServices } from '@/hooks/useServices';
 import { useAdvantages } from '@/hooks/useAdvantages';
 import { useTeam } from '@/hooks/useTeam';
 import Loading from './loading';
+import Cookies from 'js-cookie';
+import * as FiIcons from 'react-icons/fi';
 
 interface Review {
   id: number;
@@ -33,6 +35,20 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(true);
   const [reviewsLoading, setReviewsLoading] = useState(true);
   const [reviewsError, setReviewsError] = useState<string | null>(null);
+  const [csrfToken, setCsrfToken] = useState<string>('');
+
+  // Получение CSRF-токена
+  async function getCsrfToken() {
+    try {
+      const res = await fetch('/api/csrf');
+      if (res.ok) {
+        const data = await res.json();
+        setCsrfToken(data.token);
+      }
+    } catch (error) {
+      console.error('Ошибка получения CSRF-токена:', error);
+    }
+  }
 
   // Маска для телефона
   function formatPhone(input: string, prevValue = "") {
@@ -77,7 +93,10 @@ export default function Home() {
     try {
       const res = await fetch("/api/request", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "x-csrf-token": csrfToken
+        },
         body: JSON.stringify({ name, phone }),
       });
       const data = await res.json();
@@ -85,6 +104,7 @@ export default function Home() {
         setSuccess("Заявка успешно отправлена!");
         setName("");
         setPhone("");
+        await getCsrfToken();
       } else {
         setError(data.error || "Ошибка отправки");
       }
@@ -101,6 +121,7 @@ export default function Home() {
         setReviewsLoading(true);
         const [reviewsData] = await Promise.all([
           fetch('/api/review').then(res => res.json()),
+          getCsrfToken(),
           // другие загрузки данных...
         ]);
         setReviews(reviewsData.reviews || []);
@@ -171,12 +192,17 @@ export default function Home() {
         ) : advantagesError ? (
           <div className="col-span-3 text-red-600">{advantagesError}</div>
         ) : advantages.length > 0 ? (
-          advantages.map((a, i) => (
-            <div key={a.id} className="flex flex-col items-center">
-              <div className="text-4xl font-bold text-blue-600 mb-2">{a.icon || a.value}</div>
-              <div className="text-gray-700">{a.label}</div>
-            </div>
-          ))
+          advantages.map((a, i) => {
+            const Icon = a.icon && FiIcons[a.icon as keyof typeof FiIcons];
+            return (
+              <div key={a.id} className="flex flex-col items-center">
+                <div className="text-4xl font-bold text-blue-600 mb-2">
+                  {Icon ? <Icon /> : (a.icon || a.value)}
+                </div>
+                <div className="text-gray-700">{a.label}</div>
+              </div>
+            );
+          })
         ) : (
           <>
             <div className="flex flex-col items-center">
@@ -210,22 +236,27 @@ export default function Home() {
           <div className="text-center text-red-600">{servicesError}</div>
         ) : services.length > 0 ? (
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-6 justify-items-center">
-            {services.map((s, i) => (
-              <motion.div
-                key={s.id}
-                initial={{ opacity: 0, y: 30 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, amount: 0.3 }}
-                transition={{ duration: 0.5, delay: i * 0.1 }}
-                className="bg-white rounded-lg shadow p-2 sm:p-3 flex flex-col items-center text-center min-h-20 hover:shadow-xl hover:-translate-y-1 transition-transform duration-200 cursor-pointer w-full max-w-[200px]"
-                whileHover={{ scale: 1.04 }}
-                whileTap={{ scale: 0.97 }}
-              >
-                <div className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center mb-1 text-2xl">{s.icon}</div>
-                <div className="font-semibold mb-2 text-xs sm:text-base">{s.title}</div>
-                <div className="text-xs text-gray-500">{s.description}</div>
-              </motion.div>
-            ))}
+            {services.map((s, i) => {
+              const Icon = s.icon && FiIcons[s.icon as keyof typeof FiIcons];
+              return (
+                <motion.div
+                  key={s.id}
+                  initial={{ opacity: 0, y: 30 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true, amount: 0.3 }}
+                  transition={{ duration: 0.5, delay: i * 0.1 }}
+                  className="bg-white rounded-lg shadow p-2 sm:p-3 flex flex-col items-center text-center min-h-20 hover:shadow-xl hover:-translate-y-1 transition-transform duration-200 cursor-pointer w-full max-w-[200px]"
+                  whileHover={{ scale: 1.04 }}
+                  whileTap={{ scale: 0.97 }}
+                >
+                  <div className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center mb-1 text-2xl">
+                    {Icon ? <Icon /> : s.icon}
+                  </div>
+                  <div className="font-semibold mb-2 text-xs sm:text-base">{s.title}</div>
+                  <div className="text-xs text-gray-500">{s.description}</div>
+                </motion.div>
+              );
+            })}
           </div>
         ) : (
           <div className="text-center text-gray-400">Нет услуг</div>

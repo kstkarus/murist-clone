@@ -2,7 +2,7 @@ import { PrismaAdapter } from '@auth/prisma-adapter';
 import { Auth } from '@auth/core';
 import { PrismaClient, User as PrismaUser } from '@prisma/client';
 import Credentials from '@auth/core/providers/credentials';
-import { compare } from 'bcryptjs';
+import bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
 
@@ -30,7 +30,7 @@ export async function POST(req: Request) {
             where: { username: credentials.username },
           });
           if (!user || typeof user.password !== 'string') return null;
-          const isValid = await compare(credentials.password, user.password);
+          const isValid = await bcrypt.compare(credentials.password, user.password);
           if (!isValid) return null;
           return {
             id: user.id,

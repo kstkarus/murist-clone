@@ -1,7 +1,16 @@
 import { useEffect, useState } from 'react';
 
+interface TeamMember {
+  id: number;
+  name: string;
+  position: string;
+  photo: string;
+  bio: string;
+  order?: number;
+}
+
 export function useTeam() {
-  const [team, setTeam] = useState<any[]>([]);
+  const [team, setTeam] = useState<TeamMember[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 

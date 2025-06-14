@@ -46,7 +46,7 @@ const handler = async (req: Request) => {
         return token;
       },
       async session({ session, token }) {
-        if (token) {
+        if (token && session.user) {
           (session.user as any).role = token.role;
           (session.user as any).username = token.username;
         }

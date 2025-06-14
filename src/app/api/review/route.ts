@@ -42,7 +42,11 @@ export async function PUT(req: NextRequest) {
   try {
     const data = await req.json();
     const { id, ...rest } = data;
-    const review = await prisma.review.update({ where: { id }, data: rest });
+    const numId = Number(id);
+    if (!numId || isNaN(numId) || numId <= 0) {
+      return NextResponse.json({ error: 'Некорректный id' }, { status: 400 });
+    }
+    const review = await prisma.review.update({ where: { id: numId }, data: rest });
     return NextResponse.json(review);
   } catch (error) {
     console.error('Error updating review:', error);
@@ -59,7 +63,11 @@ export async function DELETE(req: NextRequest) {
 
   try {
     const data = await req.json();
-    await prisma.review.delete({ where: { id: data.id } });
+    const numId = Number(data.id);
+    if (!numId || isNaN(numId) || numId <= 0) {
+      return NextResponse.json({ error: 'Некорректный id' }, { status: 400 });
+    }
+    await prisma.review.delete({ where: { id: numId } });
     return NextResponse.json({ ok: true });
   } catch (error) {
     console.error('Error deleting review:', error);

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import jwt from 'jsonwebtoken';
 import nodemailer from 'nodemailer';
+import { verifyCsrfToken } from '@/lib/csrf';
 
 if (!process.env.JWT_SECRET) throw new Error('JWT_SECRET is not set');
 const JWT_SECRET = process.env.JWT_SECRET;
@@ -40,7 +41,19 @@ async function sendEmailNotification(name: string, phone: string) {
   }
 }
 
+function getCsrfSecretFromRequest(req: NextRequest) {
+  return req.cookies.get('csrfSecret')?.value || '';
+}
+
 export async function POST(req: NextRequest) {
+  // CSRF check
+  const csrfToken = req.headers.get('x-csrf-token') || '';
+  const csrfSecret = getCsrfSecretFromRequest(req);
+  
+  if (!csrfToken || !csrfSecret || !verifyCsrfToken(csrfSecret, csrfToken)) {
+    return NextResponse.json({ error: 'CSRF token invalid' }, { status: 403 });
+  }
+
   try {
     const { name, phone } = await req.json();
     // Валидация имени
@@ -76,10 +89,22 @@ export async function GET(req: NextRequest) {
 export async function DELETE(req: NextRequest) {
   const user = getUserFromRequest(req);
   if (!user) return NextResponse.json({ error: 'Нет доступа' }, { status: 401 });
+  
+  // CSRF check
+  const csrfToken = req.headers.get('x-csrf-token') || '';
+  const csrfSecret = getCsrfSecretFromRequest(req);
+  
+  if (!csrfToken || !csrfSecret || !verifyCsrfToken(csrfSecret, csrfToken)) {
+    return NextResponse.json({ error: 'CSRF token invalid' }, { status: 403 });
+  }
+
   try {
     const { id } = await req.json();
-    if (!id) return NextResponse.json({ error: 'Не указан id' }, { status: 400 });
-    await prisma.request.delete({ where: { id } });
+    const numId = Number(id);
+    if (!numId || isNaN(numId) || numId <= 0) {
+      return NextResponse.json({ error: 'Некорректный id' }, { status: 400 });
+    }
+    await prisma.request.delete({ where: { id: numId } });
     return NextResponse.json({ success: true });
   } catch (error) {
     return NextResponse.json({ error: 'Ошибка сервера.' }, { status: 500 });

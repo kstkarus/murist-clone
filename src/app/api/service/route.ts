@@ -24,7 +24,11 @@ export async function PUT(req: NextRequest) {
   }
   const data = await req.json();
   const { id, ...rest } = data;
-  const service = await prisma.service.update({ where: { id }, data: rest });
+  const numId = Number(id);
+  if (!numId || isNaN(numId) || numId <= 0) {
+    return NextResponse.json({ error: 'Некорректный id' }, { status: 400 });
+  }
+  const service = await prisma.service.update({ where: { id: numId }, data: rest });
   return NextResponse.json(service);
 }
 
@@ -34,6 +38,10 @@ export async function DELETE(req: NextRequest) {
     return NextResponse.json({ error: 'Нет доступа' }, { status: 401 });
   }
   const data = await req.json();
-  await prisma.service.delete({ where: { id: data.id } });
+  const numId = Number(data.id);
+  if (!numId || isNaN(numId) || numId <= 0) {
+    return NextResponse.json({ error: 'Некорректный id' }, { status: 400 });
+  }
+  await prisma.service.delete({ where: { id: numId } });
   return NextResponse.json({ ok: true });
 } 

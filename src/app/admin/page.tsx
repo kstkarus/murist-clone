@@ -3,8 +3,12 @@ import { useState, useEffect, useRef } from 'react';
 import * as XLSX from 'xlsx';
 import { useRouter } from 'next/navigation';
 import { FiRefreshCw, FiPower, FiSettings, FiMessageSquare, FiStar, FiUsers, FiTrash2, FiUpload, FiImage } from 'react-icons/fi';
+import Cookies from 'js-cookie';
+import * as FiIcons from 'react-icons/fi';
+import { Fragment } from 'react';
 
 interface User {
+  id: number;
   username: string;
   role: 'admin' | 'user';
   notify: boolean;
@@ -43,12 +47,37 @@ interface Request {
   createdAt: string;
 }
 
+interface Service {
+  id: number;
+  title: string;
+  description: string;
+  icon: string;
+  order?: number;
+}
+
+interface Advantage {
+  id: number;
+  value: string;
+  label: string;
+  icon: string;
+  order?: number;
+}
+
+interface TeamMember {
+  id: number;
+  name: string;
+  position: string;
+  photo: string;
+  bio: string;
+  order?: number;
+}
+
 export default function AdminPanel() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [requests, setRequests] = useState<Request[]>([]);
-  const [users, setUsers] = useState<any[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
   const [sort, setSort] = useState<{field: string, dir: 'asc'|'desc'}>({field: 'createdAt', dir: 'desc'});
   const [newUser, setNewUser] = useState({username: '', password: '', role: 'user', notify: false, email: ''});
   const [userError, setUserError] = useState('');
@@ -60,6 +89,7 @@ export default function AdminPanel() {
   const [showReset, setShowReset] = useState<{[id:number]: boolean}>({});
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [lastRequestCount, setLastRequestCount] = useState(0);
+  const [lastCheckTime, setLastCheckTime] = useState<Date>(new Date());
   const [autoRefresh, setAutoRefresh] = useState(true);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [activeTab, setActiveTab] = useState<Tab>('requests');
@@ -75,19 +105,21 @@ export default function AdminPanel() {
     guaranteeText: ''
   });
   const [isSavingSettings, setIsSavingSettings] = useState(false);
-  const [services, setServices] = useState<any[]>([]);
-  const [advantages, setAdvantages] = useState<any[]>([]);
+  const [services, setServices] = useState<Service[]>([]);
+  const [advantages, setAdvantages] = useState<Advantage[]>([]);
   const [newService, setNewService] = useState({ title: '', description: '', icon: '' });
   const [newAdvantage, setNewAdvantage] = useState({ value: '', label: '', icon: '' });
-  const [team, setTeam] = useState<any[]>([]);
+  const [team, setTeam] = useState<TeamMember[]>([]);
   const [newMember, setNewMember] = useState({ name: '', position: '', photo: '', bio: '' });
   const [reviews, setReviews] = useState<Review[]>([]);
   const [newReview, setNewReview] = useState({ author: '', text: '', rating: 5, photo: '', order: 0 });
   const [processedRequests, setProcessedRequests] = useState<Set<number>>(new Set());
+  const [newRequestIds, setNewRequestIds] = useState<Set<number>>(new Set());
   const [uploadingFile, setUploadingFile] = useState<{ [key: string]: boolean }>({});
   const fileInputRefs = useRef<{ [key: string]: HTMLInputElement | null }>({});
   const [isAuth, setIsAuth] = useState(false);
   const [userRole, setUserRole] = useState<string | null>(null);
+  const [csrfToken, setCsrfToken] = useState<string | null>(null);
   
   const router = useRouter();
 
@@ -115,13 +147,14 @@ export default function AdminPanel() {
   useEffect(() => {
     if (isAuth) {
       fetchRequests();
+      
       if (userRole === 'admin') {
         fetchUsers();
+        fetchServices();
+        fetchAdvantages();
+        fetchTeam();
         fetchReviews();
       }
-      fetchServices();
-      fetchAdvantages();
-      fetchTeam();
     }
   }, [isAuth, userRole, sort]);
 
@@ -137,11 +170,19 @@ export default function AdminPanel() {
       if (res.status === 401) return logout();
       const data = await res.json();
       const currentRequests = data.requests || [];
-      const newRequests = currentRequests.filter((req: Request) => !processedRequests.has(req.id));
+      
+      // Проверяем только заявки, созданные после последней проверки
+      const newRequests = currentRequests.filter((req: Request) => 
+        new Date(req.createdAt) > lastCheckTime && !processedRequests.has(req.id)
+      );
+      
       if (newRequests.length > 0) {
         setRequests(currentRequests);
         setProcessedRequests(prev => new Set([...prev, ...newRequests.map((req: Request) => req.id)]));
+        // Добавляем новые заявки для анимации
+        setNewRequestIds(new Set(newRequests.map((req: Request) => req.id)));
         
+        // Воспроизводим звук только если есть новые заявки
         try {
           if (audioRef.current) {
             const playPromise = audioRef.current.play();
@@ -154,7 +195,14 @@ export default function AdminPanel() {
         } catch (error) {
           console.error('Ошибка воспроизведения звука:', error);
         }
+
+        // Удаляем анимацию через 5 секунд
+        setTimeout(() => {
+          setNewRequestIds(new Set());
+        }, 5000);
       }
+      
+      setLastCheckTime(new Date());
       setLastRequestCount(currentRequests.length);
     };
 
@@ -163,12 +211,17 @@ export default function AdminPanel() {
 
     // Очищаем интервал при размонтировании компонента
     return () => clearInterval(intervalId);
-  }, [isAuth, processedRequests]);
+  }, [isAuth, processedRequests, lastCheckTime]);
 
   useEffect(() => {
     // Загружаем настройки сайта при монтировании
     fetchSettings();
   }, []);
+
+  // Получение CSRF-токена из cookie
+  function getCsrfTokenFromCookie() {
+    return Cookies.get('csrfToken') || '';
+  }
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
@@ -180,6 +233,8 @@ export default function AdminPanel() {
       credentials: 'include'
     });
     if (result.ok) {
+      const data = await result.json();
+      setCsrfToken(data.csrfToken);
       await checkAuth();
     } else {
       setError(result.statusText || 'Ошибка входа');
@@ -193,15 +248,21 @@ export default function AdminPanel() {
       const data = await res.json();
       const currentRequests = data.requests || [];
       
-      // Проверяем новые заявки
-      const newRequests = currentRequests.filter((req: Request) => !processedRequests.has(req.id));
+      // Всегда обновляем список заявок
+      setRequests(currentRequests);
+      
+      // Проверяем только заявки, созданные после последней проверки
+      const newRequests = currentRequests.filter((req: Request) => 
+        new Date(req.createdAt) > lastCheckTime && !processedRequests.has(req.id)
+      );
       
       if (newRequests.length > 0) {
-        setRequests(currentRequests);
         // Добавляем новые заявки в обработанные
         setProcessedRequests(prev => new Set([...prev, ...newRequests.map((req: Request) => req.id)]));
+        // Добавляем новые заявки для анимации
+        setNewRequestIds(new Set(newRequests.map((req: Request) => req.id)));
         
-        // Воспроизводим звук уведомления
+        // Воспроизводим звук только если есть новые заявки
         try {
           if (audioRef.current) {
             const playPromise = audioRef.current.play();
@@ -214,7 +275,15 @@ export default function AdminPanel() {
         } catch (error) {
           console.error('Ошибка воспроизведения звука:', error);
         }
+
+        // Удаляем анимацию через 5 секунд
+        setTimeout(() => {
+          setNewRequestIds(new Set());
+        }, 5000);
       }
+      
+      setLastCheckTime(new Date());
+      setLastRequestCount(currentRequests.length);
     } catch (error) {
       console.error('Ошибка получения заявок:', error);
     }
@@ -239,7 +308,11 @@ export default function AdminPanel() {
     setUserError('');
     const res = await fetch('/api/user', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json',
+        'x-csrf-token': csrfToken || getCsrfTokenFromCookie()
+      },
+      credentials: 'include',
       body: JSON.stringify(newUser)
     });
     if (res.status === 401) return logout();
@@ -262,7 +335,10 @@ export default function AdminPanel() {
     try {
       const res = await fetch('/api/request', {
         method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'x-csrf-token': csrfToken || getCsrfTokenFromCookie()
+        },
         body: JSON.stringify({ id })
       });
       if (res.ok) {
@@ -670,6 +746,74 @@ export default function AdminPanel() {
     );
   };
 
+  // IconPicker компонент
+  function IconPicker({ value, onChange }: { value: string; onChange: (icon: string) => void }) {
+    const [open, setOpen] = useState(false);
+    const iconNames = Object.keys(FiIcons).filter((name) => name.startsWith('Fi'));
+    const SelectedIcon = value && FiIcons[value as keyof typeof FiIcons];
+    return (
+      <div>
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          className={`flex items-center space-x-2 px-3 py-2 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors mb-2`}
+        >
+          {SelectedIcon ? (
+            <span className="text-xl"><SelectedIcon /></span>
+          ) : (
+            <span className="text-xl"><FiIcons.FiImage /></span>
+          )}
+          <span>{value ? 'Изменить иконку' : 'Выбрать иконку'}</span>
+        </button>
+        {open && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-30">
+            <div className="bg-gray-100 rounded-lg shadow-lg p-6 max-w-2xl w-full max-h-[80vh] overflow-y-auto">
+              <div className="flex justify-between items-center mb-8">
+                <h3 className="text-2xl font-extrabold mb-0 pl-2 text-blue-700">Выберите иконку</h3>
+                <button onClick={() => setOpen(false)} className="text-gray-500 hover:text-gray-700 text-3xl">×</button>
+              </div>
+              <div className="overflow-x-auto pb-2">
+                <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-5">
+                  {iconNames.map((name) => {
+                    const Icon = FiIcons[name as keyof typeof FiIcons];
+                    const isSelected = value === name;
+                    return (
+                      <button
+                        key={name}
+                        type="button"
+                        className={`flex flex-col items-center justify-center p-2 rounded border transition-all
+                          ${isSelected ? 'border-blue-500 bg-blue-100' : 'border-transparent'}
+                          hover:bg-blue-600 group`}
+                        style={{ minWidth: 70, minHeight: 70 }}
+                        onClick={() => {
+                          onChange(name);
+                          setOpen(false);
+                        }}
+                      >
+                        {Icon ? (
+                          <Icon
+                            className={`text-2xl mb-2 transition-colors
+                              ${isSelected ? 'text-blue-600' : 'text-gray-700'}
+                              group-hover:text-white`
+                            }
+                          />
+                        ) : null}
+                        <span className={`text-xs font-semibold text-center break-words leading-tight mt-1 px-1 ${isSelected ? 'text-blue-700' : 'text-gray-800'} group-hover:text-white`}
+                          style={{wordBreak: 'break-all', maxWidth: 60, maxHeight: 32, overflow: 'hidden', display: 'block'}}>
+                          {name}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
   if (!isAuth) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -901,7 +1045,9 @@ export default function AdminPanel() {
                     .map((request, index) => (
                       <div
                         key={request.id}
-                        className="p-4 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors border border-gray-200 relative"
+                        className={`p-4 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors border border-gray-200 relative ${
+                          newRequestIds.has(request.id) ? 'animate-glow' : ''
+                        }`}
                       >
                         <div className="absolute -top-2 -left-2 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-medium shadow-sm">
                           {index + 1}
@@ -950,6 +1096,13 @@ export default function AdminPanel() {
                   className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white text-gray-900 placeholder-gray-500"
                 />
                 <input
+                  type="email"
+                  placeholder="Email"
+                  value={newUser.email}
+                  onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
+                  className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white text-gray-900 placeholder-gray-500"
+                />
+                <input
                   type="password"
                   placeholder="Пароль"
                   value={newUser.password}
@@ -974,6 +1127,7 @@ export default function AdminPanel() {
                   <label className="text-gray-700">Уведомления</label>
                 </div>
               </div>
+              {userError && <div className="mt-2 text-red-600 text-sm">{userError}</div>}
               <button
                 type="submit"
                 className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
@@ -1131,13 +1285,7 @@ export default function AdminPanel() {
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white text-gray-900 placeholder-gray-500"
                     rows={3}
                   />
-                  <input
-                    type="text"
-                    placeholder="Иконка (название)"
-                    value={newService.icon}
-                    onChange={(e) => setNewService({ ...newService, icon: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white text-gray-900 placeholder-gray-500"
-                  />
+                  <IconPicker value={newService.icon} onChange={(icon) => setNewService({ ...newService, icon })} />
                   <button
                     type="submit"
                     className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
@@ -1187,13 +1335,7 @@ export default function AdminPanel() {
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white text-gray-900 placeholder-gray-500"
                     rows={3}
                   />
-                  <input
-                    type="text"
-                    placeholder="Иконка (название)"
-                    value={newAdvantage.icon}
-                    onChange={(e) => setNewAdvantage({ ...newAdvantage, icon: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white text-gray-900 placeholder-gray-500"
-                  />
+                  <IconPicker value={newAdvantage.icon} onChange={(icon) => setNewAdvantage({ ...newAdvantage, icon })} />
                   <button
                     type="submit"
                     className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"

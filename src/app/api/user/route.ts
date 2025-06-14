@@ -50,9 +50,11 @@ export async function POST(req: NextRequest) {
     if (exists) {
       return NextResponse.json({ error: 'Пользователь с таким логином уже существует.' }, { status: 400 });
     }
-    const existsEmail = await prisma.user.findUnique({ where: { username: email } });
-    if (existsEmail) {
-      return NextResponse.json({ error: 'Пользователь с таким email уже существует.' }, { status: 400 });
+    if (email) {
+      const existsEmail = await prisma.user.findFirst({ where: { email } });
+      if (existsEmail) {
+        return NextResponse.json({ error: 'Пользователь с таким email уже существует.' }, { status: 400 });
+      }
     }
     // Хэшируем пароль
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -84,8 +86,8 @@ export async function PATCH(req: NextRequest) {
   if (!user || user.role !== 'admin') return NextResponse.json({ error: 'Нет доступа' }, { status: 401 });
   try {
     const { id, notify, email, password } = await req.json();
-    if (typeof id !== 'string') {
-      return NextResponse.json({ error: 'Некорректные данные' }, { status: 400 });
+    if (typeof id !== 'string' || id.length < 10) {
+      return NextResponse.json({ error: 'Некорректный id' }, { status: 400 });
     }
     const data: UserUpdateData = {};
     if (typeof notify === 'boolean') data.notify = notify;
@@ -117,6 +119,9 @@ export async function DELETE(req: NextRequest) {
   if (!user || user.role !== 'admin') return NextResponse.json({ error: 'Нет доступа' }, { status: 401 });
   try {
     const { id } = await req.json();
+    if (typeof id !== 'string' || id.length < 10) {
+      return NextResponse.json({ error: 'Некорректный id' }, { status: 400 });
+    }
     await prisma.user.delete({ where: { id } });
     return NextResponse.json({ success: true });
   } catch (error) {

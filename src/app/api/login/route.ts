@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import { generateCsrfSecret, generateCsrfToken } from '@/lib/csrf';
 
 if (!process.env.JWT_SECRET) throw new Error('JWT_SECRET is not set');
 const JWT_SECRET = process.env.JWT_SECRET;
@@ -21,13 +22,20 @@ export async function POST(req: NextRequest) {
   }
   // Генерируем JWT
   const token = jwt.sign({ id: user.id, username: user.username, role: user.role }, JWT_SECRET, { expiresIn: '7d' });
-  const res = NextResponse.json({ user: { id: user.id, username: user.username, role: user.role } });
+
+  // Генерируем CSRF secret и token
+  const csrfSecret = generateCsrfSecret();
+  const csrfToken = generateCsrfToken(csrfSecret);
+
+  const res = NextResponse.json({ user: { id: user.id, username: user.username, role: user.role }, csrfToken });
   res.cookies.set('token', token, { httpOnly: true, path: '/', maxAge: 60 * 60 * 24 * 7 });
+  res.cookies.set('csrfSecret', csrfSecret, { httpOnly: false, path: '/', maxAge: 60 * 60 * 24 * 7, secure: true, sameSite: 'lax' });
   return res;
 }
 
 export async function DELETE() {
   const res = NextResponse.json({ success: true });
   res.cookies.set('token', '', { httpOnly: true, path: '/', maxAge: 0 });
+  res.cookies.set('csrfSecret', '', { httpOnly: false, path: '/', maxAge: 0 });
   return res;
 } 

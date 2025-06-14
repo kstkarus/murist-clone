@@ -42,7 +42,7 @@ model User {
   username      String    @unique
   password      String
   role          String    @default("user")
-  email         String?
+  email         String?   @unique
   notify        Boolean   @default(false)
   accounts      Account[]
   sessions      Session[]
