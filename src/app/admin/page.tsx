@@ -1,7 +1,6 @@
 'use client';
 import { useState, useEffect, useRef } from 'react';
 import * as XLSX from 'xlsx';
-import { useSession, signIn, signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { FiRefreshCw, FiPower, FiSettings, FiMessageSquare, FiStar, FiUsers, FiTrash2, FiUpload, FiImage } from 'react-icons/fi';
 
@@ -45,7 +44,6 @@ interface Request {
 }
 
 export default function AdminPanel() {
-  const { data: session, status } = useSession();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -88,13 +86,36 @@ export default function AdminPanel() {
   const [processedRequests, setProcessedRequests] = useState<Set<number>>(new Set());
   const [uploadingFile, setUploadingFile] = useState<{ [key: string]: boolean }>({});
   const fileInputRefs = useRef<{ [key: string]: HTMLInputElement | null }>({});
+  const [isAuth, setIsAuth] = useState(false);
+  const [userRole, setUserRole] = useState<string | null>(null);
   
   const router = useRouter();
 
+  const checkAuth = async () => {
+    try {
+      const res = await fetch('/api/me', { credentials: 'include' });
+      if (res.ok) {
+        const data = await res.json();
+        setIsAuth(true);
+        setUserRole(data.user?.role || null);
+      } else {
+        setIsAuth(false);
+        setUserRole(null);
+      }
+    } catch {
+      setIsAuth(false);
+      setUserRole(null);
+    }
+  };
+
   useEffect(() => {
-    if (status === 'authenticated' && session?.user) {
+    checkAuth();
+  }, []);
+
+  useEffect(() => {
+    if (isAuth) {
       fetchRequests();
-      if ((session.user as any).role === 'admin') {
+      if (userRole === 'admin') {
         fetchUsers();
         fetchReviews();
       }
@@ -102,31 +123,25 @@ export default function AdminPanel() {
       fetchAdvantages();
       fetchTeam();
     }
-  }, [status, session, sort]);
+  }, [isAuth, userRole, sort]);
 
   useEffect(() => {
     // Создаем элемент аудио для уведомлений
     audioRef.current = new Audio('/notification.mp3');
-    audioRef.current.volume = 0.5; // Устанавливаем громкость на 50%
+    audioRef.current.volume = 0.5;
     
     // Функция для проверки новых заявок
     const checkNewRequests = async () => {
-      if (!session?.user) return logout();
-      
-      const res = await fetch('/api/request');
+      if (!isAuth) return logout();
+      const res = await fetch('/api/request', { credentials: 'include' });
       if (res.status === 401) return logout();
       const data = await res.json();
       const currentRequests = data.requests || [];
-      
-      // Проверяем новые заявки
       const newRequests = currentRequests.filter((req: Request) => !processedRequests.has(req.id));
-      
       if (newRequests.length > 0) {
         setRequests(currentRequests);
-        // Добавляем новые заявки в обработанные
         setProcessedRequests(prev => new Set([...prev, ...newRequests.map((req: Request) => req.id)]));
         
-        // Воспроизводим звук уведомления
         try {
           if (audioRef.current) {
             const playPromise = audioRef.current.play();
@@ -140,7 +155,6 @@ export default function AdminPanel() {
           console.error('Ошибка воспроизведения звука:', error);
         }
       }
-      
       setLastRequestCount(currentRequests.length);
     };
 
@@ -149,7 +163,7 @@ export default function AdminPanel() {
 
     // Очищаем интервал при размонтировании компонента
     return () => clearInterval(intervalId);
-  }, [session, processedRequests]);
+  }, [isAuth, processedRequests]);
 
   useEffect(() => {
     // Загружаем настройки сайта при монтировании
@@ -159,21 +173,22 @@ export default function AdminPanel() {
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
     setError('');
-    
-    const result = await signIn('credentials', {
-      username,
-      password,
-      redirect: false
+    const result = await fetch('/api/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password }),
+      credentials: 'include'
     });
-
-    if (result?.error) {
-      setError(result.error);
+    if (result.ok) {
+      await checkAuth();
+    } else {
+      setError(result.statusText || 'Ошибка входа');
     }
   }
 
   async function fetchRequests() {
     try {
-      const res = await fetch('/api/request');
+      const res = await fetch('/api/request', { credentials: 'include' });
       if (res.status === 401) return logout();
       const data = await res.json();
       const currentRequests = data.requests || [];
@@ -206,7 +221,7 @@ export default function AdminPanel() {
   }
 
   async function fetchUsers() {
-    const res = await fetch('/api/user');
+    const res = await fetch('/api/user', { credentials: 'include' });
     if (res.status === 401) return logout();
     const data = await res.json();
     setUsers(data.users || []);
@@ -238,8 +253,9 @@ export default function AdminPanel() {
   }
 
   async function logout() {
-    await signOut({ redirect: false });
-    router.push('/');
+    await fetch('/api/login', { method: 'DELETE', credentials: 'include' });
+    setIsAuth(false);
+    setUserRole(null);
   }
 
   async function handleDeleteRequest(id: number) {
@@ -250,7 +266,7 @@ export default function AdminPanel() {
         body: JSON.stringify({ id })
       });
       if (res.ok) {
-        fetchRequests();
+        setRequests(prevRequests => prevRequests.filter(request => request.id !== id));
       }
     } catch (error) {
       console.error('Ошибка удаления заявки:', error);
@@ -357,7 +373,7 @@ export default function AdminPanel() {
   };
 
   const fetchSettings = async () => {
-    const res = await fetch('/api/settings');
+    const res = await fetch('/api/settings', { credentials: 'include' });
     if (res.ok) {
       const data = await res.json();
       setSettings({
@@ -401,26 +417,26 @@ export default function AdminPanel() {
   };
 
   async function fetchServices() {
-    const res = await fetch('/api/service');
+    const res = await fetch('/api/service', { credentials: 'include' });
     const data = await res.json();
     setServices(data.services || []);
   }
 
   async function fetchAdvantages() {
-    const res = await fetch('/api/advantage');
+    const res = await fetch('/api/advantage', { credentials: 'include' });
     const data = await res.json();
     setAdvantages(data.advantages || []);
   }
 
   async function fetchTeam() {
-    const res = await fetch('/api/team');
+    const res = await fetch('/api/team', { credentials: 'include' });
     const data = await res.json();
     setTeam(data.team || []);
   }
 
   async function fetchReviews() {
     try {
-      const res = await fetch('/api/review');
+      const res = await fetch('/api/review', { credentials: 'include' });
       if (res.status === 401) return logout();
       const data = await res.json();
       setReviews(data.reviews || []);
@@ -654,38 +670,42 @@ export default function AdminPanel() {
     );
   };
 
-  if (status === 'loading') {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-      </div>
-    );
-  }
-
-  if (!session) {
+  if (!isAuth) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="bg-white p-8 rounded-xl shadow-sm max-w-md w-full">
-          <h1 className="text-2xl font-bold text-center mb-6">Вход в админ-панель</h1>
+          <h1 className="text-2xl font-bold text-center mb-6 text-gray-900">Вход в админ-панель</h1>
           <form onSubmit={handleLogin} className="space-y-4">
-            <input
-              type="text"
-              placeholder="Имя пользователя"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white text-gray-900 placeholder-gray-500"
-            />
-            <input
-              type="password"
-              placeholder="Пароль"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white text-gray-900 placeholder-gray-500"
-            />
-            {error && <div className="text-red-600 text-sm">{error}</div>}
+            <div>
+              <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-1">
+                Имя пользователя
+              </label>
+              <input
+                id="username"
+                type="text"
+                placeholder="Введите имя пользователя"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white text-gray-900 placeholder-gray-500"
+              />
+            </div>
+            <div>
+              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+                Пароль
+              </label>
+              <input
+                id="password"
+                type="password"
+                placeholder="Введите пароль"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white text-gray-900 placeholder-gray-500"
+              />
+            </div>
+            {error && <div className="text-red-600 text-sm font-medium">{error}</div>}
             <button
               type="submit"
-              className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
             >
               Войти
             </button>
@@ -743,26 +763,30 @@ export default function AdminPanel() {
               >
                 Заявки
               </button>
-              <button
-                onClick={() => setActiveTab('users')}
-                className={`${
-                  activeTab === 'users'
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
-              >
-                Пользователи
-              </button>
-              <button
-                onClick={() => setActiveTab('content')}
-                className={`${
-                  activeTab === 'content'
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
-              >
-                Контент
-              </button>
+              {userRole === 'admin' && (
+                <>
+                  <button
+                    onClick={() => setActiveTab('users')}
+                    className={`${
+                      activeTab === 'users'
+                        ? 'border-blue-500 text-blue-600'
+                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
+                  >
+                    Пользователи
+                  </button>
+                  <button
+                    onClick={() => setActiveTab('content')}
+                    className={`${
+                      activeTab === 'content'
+                        ? 'border-blue-500 text-blue-600'
+                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
+                  >
+                    Контент
+                  </button>
+                </>
+              )}
             </nav>
           </div>
         </div>

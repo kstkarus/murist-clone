@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
-import { getServerSession } from '@/lib/getServerSession';
-
-const prisma = new PrismaClient();
+import { prisma } from '@/lib/prisma';
+import { getUserFromRequest } from '@/lib/auth';
 
 // Получение списка отзывов
 export async function GET() {
@@ -19,8 +17,8 @@ export async function GET() {
 
 // Создание отзыва (только для admin)
 export async function POST(req: NextRequest) {
-  const session = await getServerSession(req);
-  if (!session || session.role !== 'admin') {
+  const user = getUserFromRequest(req);
+  if (!user || user.role !== 'admin') {
     return NextResponse.json({ error: 'Требуется авторизация' }, { status: 401 });
   }
 
@@ -36,8 +34,8 @@ export async function POST(req: NextRequest) {
 
 // Обновление отзыва (только для admin)
 export async function PUT(req: NextRequest) {
-  const session = await getServerSession(req);
-  if (!session || session.role !== 'admin') {
+  const user = getUserFromRequest(req);
+  if (!user || user.role !== 'admin') {
     return NextResponse.json({ error: 'Требуется авторизация' }, { status: 401 });
   }
 
@@ -54,8 +52,8 @@ export async function PUT(req: NextRequest) {
 
 // Удаление отзыва (только для admin)
 export async function DELETE(req: NextRequest) {
-  const session = await getServerSession(req);
-  if (!session || session.role !== 'admin') {
+  const user = getUserFromRequest(req);
+  if (!user || user.role !== 'admin') {
     return NextResponse.json({ error: 'Требуется авторизация' }, { status: 401 });
   }
 

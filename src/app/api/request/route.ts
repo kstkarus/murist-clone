@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '../../../generated/prisma';
+import { prisma } from '@/lib/prisma';
 import jwt from 'jsonwebtoken';
 import nodemailer from 'nodemailer';
 
-const prisma = new PrismaClient();
-const JWT_SECRET = process.env.JWT_SECRET || 'dev_secret';
+if (!process.env.JWT_SECRET) throw new Error('JWT_SECRET is not set');
+const JWT_SECRET = process.env.JWT_SECRET;
 
 function getUserFromRequest(req: NextRequest) {
   const token = req.cookies.get('token')?.value;
@@ -43,8 +43,14 @@ async function sendEmailNotification(name: string, phone: string) {
 export async function POST(req: NextRequest) {
   try {
     const { name, phone } = await req.json();
-    if (!name || !phone) {
-      return NextResponse.json({ error: 'Необходимо указать ФИО и телефон.' }, { status: 400 });
+    // Валидация имени
+    if (!name || typeof name !== 'string' || name.trim().length < 2) {
+      return NextResponse.json({ error: 'Введите корректное имя (минимум 2 символа).' }, { status: 400 });
+    }
+    // Валидация телефона
+    const phonePattern = /^\+7 \(\d{3}\) \d{3} \d{2} \d{2}$/;
+    if (!phone || typeof phone !== 'string' || !phonePattern.test(phone)) {
+      return NextResponse.json({ error: 'Введите корректный номер телефона в формате +7 (XXX) XXX XX XX.' }, { status: 400 });
     }
     const request = await prisma.request.create({
       data: { name, phone },
@@ -69,7 +75,7 @@ export async function GET(req: NextRequest) {
 
 export async function DELETE(req: NextRequest) {
   const user = getUserFromRequest(req);
-  if (!user || user.role !== 'admin') return NextResponse.json({ error: 'Нет доступа' }, { status: 401 });
+  if (!user) return NextResponse.json({ error: 'Нет доступа' }, { status: 401 });
   try {
     const { id } = await req.json();
     if (!id) return NextResponse.json({ error: 'Не указан id' }, { status: 400 });

@@ -1,4 +1,4 @@
-import { getToken } from 'next-auth/jwt';
+import { getToken } from '@auth/core/jwt';
 import { NextRequest } from 'next/server';
 
 export async function getServerSession(req: NextRequest) {

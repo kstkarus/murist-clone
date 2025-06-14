@@ -1,13 +1,10 @@
 import { NextResponse, NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { PrismaClient } from '@prisma/client';
-import { getServerSession } from '@/lib/getServerSession';
-
-const prismaClient = new PrismaClient();
+import { getUserFromRequest } from '@/lib/auth';
 
 export async function GET() {
   try {
-    const settings = await prismaClient.settings.findFirst();
+    const settings = await prisma.settings.findFirst();
     return NextResponse.json(settings || {});
   } catch (error) {
     console.error('Ошибка при получении настроек:', error);
@@ -16,11 +13,11 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
+  const user = getUserFromRequest(request);
+  if (!user || user.role !== 'admin') {
+    return NextResponse.json({ error: 'Требуется авторизация' }, { status: 401 });
+  }
   try {
-    const session = await getServerSession(request);
-    if (!session || session.role !== 'admin') {
-      return NextResponse.json({ error: 'Требуется авторизация' }, { status: 401 });
-    }
     const data = await request.json();
     // Проверяем наличие всех необходимых полей
     const requiredFields = ['siteName', 'phone', 'email', 'address', 'workingHours', 'description', 'vkLink', 'telegramLink'];
@@ -29,7 +26,7 @@ export async function POST(request: NextRequest) {
         data[field] = '';
       }
     }
-    const settings = await prismaClient.settings.upsert({
+    const settings = await prisma.settings.upsert({
       where: { id: 1 },
       update: data,
       create: { id: 1, ...data }
