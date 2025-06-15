@@ -7,7 +7,7 @@ import Cookies from 'js-cookie';
 import * as FiIcons from 'react-icons/fi';
 import { Fragment } from 'react';
 import dynamic from 'next/dynamic';
-import 'quill/dist/quill.snow.css';
+import 'react-quill/dist/quill.snow.css';
 
 const ReactQuill = dynamic(() => import('react-quill'), { ssr: false }) as any;
 
