@@ -31,8 +31,9 @@ CREATE TABLE "VerificationToken" (
 
 -- CreateTable
 CREATE TABLE "Settings" (
-    "id" INTEGER NOT NULL DEFAULT 1,
-    "siteName" TEXT NOT NULL DEFAULT '',
+    "id" SERIAL NOT NULL,
+    "siteName" TEXT NOT NULL DEFAULT 'Название сайта',
+    "footerCompanyName" TEXT NOT NULL DEFAULT 'Название компании',
     "phone" TEXT NOT NULL DEFAULT '',
     "email" TEXT NOT NULL DEFAULT '',
     "address" TEXT NOT NULL DEFAULT '',
@@ -40,8 +41,9 @@ CREATE TABLE "Settings" (
     "description" TEXT NOT NULL DEFAULT '',
     "vkLink" TEXT NOT NULL DEFAULT '',
     "telegramLink" TEXT NOT NULL DEFAULT '',
-    "guaranteeText" TEXT NOT NULL DEFAULT 'Гарантия результата или вернем 100% оплаченной суммы!',
+    "guaranteeText" TEXT NOT NULL DEFAULT '',
     "privacyPolicy" TEXT NOT NULL DEFAULT '',
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "Settings_pkey" PRIMARY KEY ("id")

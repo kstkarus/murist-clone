@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 
 interface Settings {
   siteName: string;
+  footerCompanyName: string;
   phone: string;
   email: string;
   address: string;

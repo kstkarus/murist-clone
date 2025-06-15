@@ -20,7 +20,7 @@ export async function POST(request: NextRequest) {
   try {
     const data = await request.json();
     // Проверяем наличие всех необходимых полей
-    const requiredFields = ['siteName', 'phone', 'email', 'address', 'workingHours', 'description', 'vkLink', 'telegramLink', 'guaranteeText', 'privacyPolicy'];
+    const requiredFields = ['siteName', 'footerCompanyName', 'phone', 'email', 'address', 'workingHours', 'description', 'vkLink', 'telegramLink', 'guaranteeText', 'privacyPolicy'];
     for (const field of requiredFields) {
       if (!(field in data)) {
         data[field] = '';

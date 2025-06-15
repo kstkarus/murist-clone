@@ -1,6 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -11,14 +8,14 @@ datasource db {
 }
 
 model User {
-  id            String    @id @default(cuid())
-  username      String    @unique
-  password      String
-  role          String    @default("user")
-  email         String?   @unique
-  notify        Boolean   @default(false)
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt @default(now())
+  id        String   @id @default(cuid())
+  username  String   @unique
+  password  String
+  role      String   @default("user")
+  email     String?  @unique
+  notify    Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
 }
 
 model Request {
@@ -37,52 +34,54 @@ model VerificationToken {
 }
 
 model Settings {
-  id            Int      @id @default(1)
-  siteName      String   @default("")
-  phone         String   @default("")
-  email         String   @default("")
-  address       String   @default("")
-  workingHours  String   @default("")
-  description   String   @default("")
-  vkLink        String   @default("")
-  telegramLink  String   @default("")
-  guaranteeText String   @default("Гарантия результата или вернем 100% оплаченной суммы!")
-  privacyPolicy String   @default("")
-  updatedAt     DateTime @updatedAt
+  id                Int      @id @default(autoincrement())
+  siteName          String   @default("Название сайта")
+  footerCompanyName String   @default("Название компании")
+  phone             String   @default("")
+  email             String   @default("")
+  address           String   @default("")
+  workingHours      String   @default("")
+  description       String   @default("")
+  vkLink            String   @default("")
+  telegramLink      String   @default("")
+  guaranteeText     String   @default("")
+  privacyPolicy     String   @default("")
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 }
 
 model Service {
-  id        Int      @id @default(autoincrement())
-  title     String
+  id          Int     @id @default(autoincrement())
+  title       String
   description String
-  icon      String?   // путь к иконке или emoji
-  order     Int       @default(0)
+  icon        String?
+  order       Int     @default(0)
 }
 
 model Advantage {
-  id        Int      @id @default(autoincrement())
-  value     String   // цифра или короткий текст
-  label     String   // подпись
-  icon      String?  // путь к иконке или emoji
-  order     Int      @default(0)
+  id    Int     @id @default(autoincrement())
+  value String
+  label String
+  icon  String?
+  order Int     @default(0)
 }
 
 model TeamMember {
-  id        Int    @id @default(autoincrement())
-  name      String
-  position  String
-  photo     String?
-  bio       String?
-  order     Int    @default(0)
+  id       Int     @id @default(autoincrement())
+  name     String
+  position String
+  photo    String?
+  bio      String?
+  order    Int     @default(0)
 }
 
 model Review {
   id        Int      @id @default(autoincrement())
-  author    String   // имя автора
-  text      String   // текст отзыва
-  rating    Int      @default(5) // оценка от 1 до 5
-  photo     String?  // фото автора (опционально)
-  order     Int      @default(0) // порядок отображения
+  author    String
+  text      String
+  rating    Int      @default(5)
+  photo     String?
+  order     Int      @default(0)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }

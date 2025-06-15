@@ -159,7 +159,7 @@ export default function Home() {
           transition={{ duration: 0.5, delay: 0.1 }}
           className="text-lg sm:text-xl text-gray-600 mb-8 sm:mb-10 max-w-3xl mx-auto leading-relaxed"
         >
-          {settings?.description || 'Профессиональная помощь в списании долгов через процедуру банкротства. Более 10 лет опыта и сотни успешных дел.'}
+          {settings?.description || 'Профессиональная помощь в списании долгов через процедуру банкротства. Современный подход и индивидуальные решения для каждого клиента.'}
         </motion.p>
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -572,7 +572,7 @@ export default function Home() {
       {/* Футер */}
       <footer className="w-full py-6 px-4 text-center text-gray-500 text-sm mt-8 border-t">
         <div className="flex justify-center items-center">
-          <span>© {new Date().getFullYear()} {settings?.siteName || 'Свой Юрист'}. Все права защищены.</span>
+          <span>© {new Date().getFullYear()} {settings?.footerCompanyName || 'Название компании'}. Все права защищены.</span>
         </div>
       </footer>
     </div>

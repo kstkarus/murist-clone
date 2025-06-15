@@ -21,6 +21,7 @@ interface User {
 
 interface SiteSettings {
   siteName: string;
+  footerCompanyName: string;
   phone: string;
   email: string;
   address: string;
@@ -102,6 +103,7 @@ export default function AdminPanel() {
   const [activeTab, setActiveTab] = useState<Tab>('requests');
   const [settings, setSettings] = useState<SiteSettings>({
     siteName: '',
+    footerCompanyName: '',
     phone: '',
     email: '',
     address: '',
@@ -479,6 +481,7 @@ export default function AdminPanel() {
       const data = await res.json();
       setSettings({
         siteName: data.siteName || '',
+        footerCompanyName: data.footerCompanyName || '',
         phone: data.phone || '',
         email: data.email || '',
         address: data.address || '',
@@ -1213,6 +1216,17 @@ export default function AdminPanel() {
                     value={settings.siteName}
                     onChange={(e) => setSettings({ ...settings, siteName: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white text-gray-900 placeholder-gray-500"
+                    placeholder="Введите название сайта"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Название в футере</label>
+                  <input
+                    type="text"
+                    value={settings.footerCompanyName}
+                    onChange={(e) => setSettings({ ...settings, footerCompanyName: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white text-gray-900 placeholder-gray-500"
+                    placeholder="Введите название компании для футера"
                   />
                 </div>
                 <div>
@@ -1222,6 +1236,7 @@ export default function AdminPanel() {
                     value={settings.phone}
                     onChange={(e) => setSettings({ ...settings, phone: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white text-gray-900 placeholder-gray-500"
+                    placeholder="Введите контактный номер телефона"
                   />
                 </div>
                 <div>
@@ -1231,6 +1246,7 @@ export default function AdminPanel() {
                     value={settings.email}
                     onChange={(e) => setSettings({ ...settings, email: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white text-gray-900 placeholder-gray-500"
+                    placeholder="Введите контактную почту"
                   />
                 </div>
                 <div>
@@ -1240,6 +1256,7 @@ export default function AdminPanel() {
                     value={settings.address}
                     onChange={(e) => setSettings({ ...settings, address: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white text-gray-900 placeholder-gray-500"
+                    placeholder="Введите адрес"
                   />
                 </div>
                 <div>
@@ -1249,6 +1266,7 @@ export default function AdminPanel() {
                     value={settings.workingHours}
                     onChange={(e) => setSettings({ ...settings, workingHours: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white text-gray-900 placeholder-gray-500"
+                    placeholder="Введите время работы"
                   />
                 </div>
                 <div>
@@ -1258,6 +1276,7 @@ export default function AdminPanel() {
                     onChange={(e) => setSettings({ ...settings, description: e.target.value })}
                     rows={3}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white text-gray-900 placeholder-gray-500"
+                    placeholder="Введите описание сайта"
                   />
                 </div>
                 <div>
@@ -1267,6 +1286,7 @@ export default function AdminPanel() {
                     value={settings.vkLink}
                     onChange={(e) => setSettings({ ...settings, vkLink: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white text-gray-900 placeholder-gray-500"
+                    placeholder='Введите ссылку ВКонтакте'
                   />
                 </div>
                 <div>
@@ -1276,15 +1296,17 @@ export default function AdminPanel() {
                     value={settings.telegramLink}
                     onChange={(e) => setSettings({ ...settings, telegramLink: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white text-gray-900 placeholder-gray-500"
+                    placeholder='Введите ссылку Telegram'
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Текст гарантии</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Второго описания (под кнопкой)</label>
                   <textarea
                     value={settings.guaranteeText}
                     onChange={(e) => setSettings({ ...settings, guaranteeText: e.target.value })}
                     rows={3}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white text-gray-900 placeholder-gray-500"
+                    placeholder='Второе описание'
                   />
                 </div>
                 <div>
