@@ -7,9 +7,9 @@ import Cookies from 'js-cookie';
 import * as FiIcons from 'react-icons/fi';
 import { Fragment } from 'react';
 import dynamic from 'next/dynamic';
+import 'quill/dist/quill.snow.css';
 
-const ReactQuill = dynamic(() => import('react-quill'), { ssr: false });
-import 'react-quill/dist/quill.snow.css';
+const ReactQuill = dynamic(() => import('react-quill'), { ssr: false }) as any;
 
 interface User {
   id: string;
@@ -1327,7 +1327,7 @@ export default function AdminPanel() {
                     <ReactQuill
                       theme="snow"
                       value={settings.privacyPolicy}
-                      onChange={(content) => setSettings({ ...settings, privacyPolicy: content })}
+                      onChange={(content: any) => setSettings({ ...settings, privacyPolicy: content })}
                       className="h-80 bg-white"
                       modules={{
                         toolbar: [
