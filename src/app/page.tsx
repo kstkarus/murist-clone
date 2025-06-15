@@ -571,7 +571,9 @@ export default function Home() {
 
       {/* Футер */}
       <footer className="w-full py-6 px-4 text-center text-gray-500 text-sm mt-8 border-t">
-        <div>© {new Date().getFullYear()} {settings?.siteName || 'Свой Юрист'}. Все права защищены.</div>
+        <div className="flex justify-center items-center">
+          <span>© {new Date().getFullYear()} {settings?.siteName || 'Свой Юрист'}. Все права защищены.</span>
+        </div>
       </footer>
     </div>
   );

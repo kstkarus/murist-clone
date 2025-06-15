@@ -8,7 +8,7 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
-  const user = getUserFromRequest(req);
+  const user = await getUserFromRequest(req);
   if (!user || user.role !== 'admin') {
     return NextResponse.json({ error: 'Нет доступа' }, { status: 401 });
   }
@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
 }
 
 export async function PUT(req: NextRequest) {
-  const user = getUserFromRequest(req);
+  const user = await getUserFromRequest(req);
   if (!user || user.role !== 'admin') {
     return NextResponse.json({ error: 'Нет доступа' }, { status: 401 });
   }
@@ -33,7 +33,7 @@ export async function PUT(req: NextRequest) {
 }
 
 export async function DELETE(req: NextRequest) {
-  const user = getUserFromRequest(req);
+  const user = await getUserFromRequest(req);
   if (!user || user.role !== 'admin') {
     return NextResponse.json({ error: 'Нет доступа' }, { status: 401 });
   }

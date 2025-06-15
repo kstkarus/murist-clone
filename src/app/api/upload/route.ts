@@ -8,7 +8,7 @@ export const dynamic = 'force-dynamic';
 
 export async function POST(req: NextRequest) {
   try {
-    const user = getUserFromRequest(req);
+    const user = await getUserFromRequest(req);
     if (!user || user.role !== 'admin') {
       return NextResponse.json({ error: 'Нет доступа' }, { status: 401 });
     }

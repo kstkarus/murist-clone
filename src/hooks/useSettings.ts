@@ -10,6 +10,7 @@ interface Settings {
   vkLink: string;
   telegramLink: string;
   guaranteeText: string;
+  privacyPolicy: string;
 }
 
 export function useSettings() {

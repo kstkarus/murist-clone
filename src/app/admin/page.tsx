@@ -6,9 +6,13 @@ import { FiRefreshCw, FiPower, FiSettings, FiMessageSquare, FiStar, FiUsers, FiT
 import Cookies from 'js-cookie';
 import * as FiIcons from 'react-icons/fi';
 import { Fragment } from 'react';
+import dynamic from 'next/dynamic';
+
+const ReactQuill = dynamic(() => import('react-quill'), { ssr: false });
+import 'react-quill/dist/quill.snow.css';
 
 interface User {
-  id: number;
+  id: string;
   username: string;
   role: 'admin' | 'user';
   notify: boolean;
@@ -25,6 +29,7 @@ interface SiteSettings {
   vkLink: string;
   telegramLink: string;
   guaranteeText: string;
+  privacyPolicy: string;
 }
 
 type Tab = 'requests' | 'users' | 'settings' | 'services' | 'advantages' | 'team' | 'reviews' | 'content';
@@ -78,6 +83,8 @@ export default function AdminPanel() {
   const [error, setError] = useState('');
   const [requests, setRequests] = useState<Request[]>([]);
   const [users, setUsers] = useState<User[]>([]);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [currentUsername, setCurrentUsername] = useState<string | null>(null);
   const [sort, setSort] = useState<{field: string, dir: 'asc'|'desc'}>({field: 'createdAt', dir: 'desc'});
   const [newUser, setNewUser] = useState({username: '', password: '', role: 'user', notify: false, email: ''});
   const [userError, setUserError] = useState('');
@@ -102,7 +109,8 @@ export default function AdminPanel() {
     description: '',
     vkLink: '',
     telegramLink: '',
-    guaranteeText: ''
+    guaranteeText: '',
+    privacyPolicy: ''
   });
   const [isSavingSettings, setIsSavingSettings] = useState(false);
   const [services, setServices] = useState<Service[]>([]);
@@ -126,17 +134,28 @@ export default function AdminPanel() {
   const checkAuth = async () => {
     try {
       const res = await fetch('/api/me', { credentials: 'include' });
-      if (res.ok) {
-        const data = await res.json();
+      const data = await res.json();
+      
+      if (res.ok && data.authorized) {
         setIsAuth(true);
         setUserRole(data.user?.role || null);
+        setCurrentUserId(data.user?.id || null);
+        setCurrentUsername(data.user?.username || null);
       } else {
         setIsAuth(false);
         setUserRole(null);
+        setCurrentUserId(null);
+        setCurrentUsername(null);
+        // Очищаем куки на клиенте
+        document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
       }
     } catch {
       setIsAuth(false);
       setUserRole(null);
+      setCurrentUserId(null);
+      setCurrentUsername(null);
+      // Очищаем куки на клиенте
+      document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
     }
   };
 
@@ -349,7 +368,13 @@ export default function AdminPanel() {
     }
   }
 
-  async function handleDeleteUser(id: number) {
+  async function handleDeleteUser(id: string) {
+    // Проверяем, не пытается ли админ удалить свой аккаунт
+    if (id === currentUserId) {
+      alert('Вы не можете удалить свой собственный аккаунт');
+      return;
+    }
+    
     if (!window.confirm('Удалить пользователя?')) return;
     const res = await fetch('/api/user', {
       method: 'DELETE',
@@ -360,7 +385,7 @@ export default function AdminPanel() {
     fetchUsers();
   }
 
-  async function handleUpdateNotify(id: number, notify: boolean) {
+  async function handleUpdateNotify(id: string, notify: boolean) {
     await fetch('/api/user', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
@@ -461,7 +486,8 @@ export default function AdminPanel() {
         description: data.description || '',
         vkLink: data.vkLink || '',
         telegramLink: data.telegramLink || '',
-        guaranteeText: data.guaranteeText || ''
+        guaranteeText: data.guaranteeText || '',
+        privacyPolicy: data.privacyPolicy || ''
       });
     }
   };
@@ -869,6 +895,11 @@ export default function AdminPanel() {
               <h1 className="text-xl font-semibold text-gray-900">Панель управления</h1>
             </div>
             <div className="flex items-center space-x-4">
+              {currentUsername && (
+                <span className="text-sm text-gray-600">
+                  {currentUsername}
+                </span>
+              )}
               <button
                 onClick={handleRefresh}
                 className={`p-2 rounded-lg transition-colors ${
@@ -1255,6 +1286,38 @@ export default function AdminPanel() {
                     rows={3}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white text-gray-900 placeholder-gray-500"
                   />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Политика конфиденциальности</label>
+                  <div className="h-96 border border-gray-300 rounded-lg overflow-hidden">
+                    <style jsx global>{`
+                      .ql-editor {
+                        color: #1f2937 !important;
+                        font-size: 16px;
+                      }
+                      .ql-toolbar {
+                        border-top: none !important;
+                        border-left: none !important;
+                        border-right: none !important;
+                        background-color: #f9fafb;
+                      }
+                    `}</style>
+                    <ReactQuill
+                      theme="snow"
+                      value={settings.privacyPolicy}
+                      onChange={(content) => setSettings({ ...settings, privacyPolicy: content })}
+                      className="h-80 bg-white"
+                      modules={{
+                        toolbar: [
+                          [{ 'header': [1, 2, 3, 4, 5, 6, false] }],
+                          ['bold', 'italic', 'underline', 'strike'],
+                          [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                          [{ 'color': [] }, { 'background': [] }],
+                          ['clean']
+                        ]
+                      }}
+                    />
+                  </div>
                 </div>
                 <button
                   type="submit"

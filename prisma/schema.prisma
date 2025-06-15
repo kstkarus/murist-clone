@@ -47,6 +47,7 @@ model Settings {
   vkLink        String   @default("")
   telegramLink  String   @default("")
   guaranteeText String   @default("Гарантия результата или вернем 100% оплаченной суммы!")
+  privacyPolicy String   @default("")
   updatedAt     DateTime @updatedAt
 }
 
