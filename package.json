@@ -7,6 +7,10 @@
     "build": "prisma generate && next build",
     "start": "next start",
     "lint": "next lint",
+    "seed": "node prisma/seed.js",
+    "copy-prisma": "node scripts/copy-prisma.js"
+  },
+  "prisma": {
     "seed": "node prisma/seed.js"
   },
   "dependencies": {
